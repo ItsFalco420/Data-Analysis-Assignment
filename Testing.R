@@ -1,0 +1,2 @@
+data(cars)
+rm(cars)
