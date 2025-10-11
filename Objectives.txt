@@ -1,0 +1,21 @@
+Objectives:
+1. Data Cleaning - Afrah (Do it as soon as possible)
+
+2. Data Analysis (The rest of the members)
+
+Need the clean dataset before doing analysis
+
+We don't need to use the entire dataset for analysis. You can just take one, two, or more columns to compare, detect outliers, visualization, etc. You guys can do any type of analysis on the chosen column. 
+
+Taking the columns and doing analysis on it is considered as an objective.
+
+You guys can do more than one objectives but minimum one.
+
+dateline:
+for data cleaning: 2nd or 3rd week of October
+1st week of November
+
+How to do?
+Do your objective under one R file named "Group 27"
+Do your objective under your name and TP (Put the TP id yourself)
+Push your work to GitHub if you made any changes
