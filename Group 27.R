@@ -105,6 +105,7 @@ if (any(const_cols)) {
   cat("Removing constant columns:", paste(names(unsw)[const_cols], collapse = ", "), "\n")
   unsw <- unsw[, !const_cols, drop = FALSE]
 }
+
 str(unsw)
 summary(unsw)
 
@@ -112,10 +113,97 @@ write.csv(unsw, "UNSW_NB15_cleaned.csv", row.names = FALSE)
 cat("Saved cleaned file to: UNSW_NB15_cleaned.csv\n")
 
 
-
 #Data Analysis
 
-#TEE EN YONG
+#============================================================================================================
+#TEE EN YONG (TP074195)
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(scales)
+library(reshape2)
+library(dplyr)
+library(tidyr)
+
+cleaned_data_csv <- read_csv("UNSW_NB15_cleaned.csv", show_col_types = FALSE) %>%
+  clean_names()
+
+#This is for checking
+glimpse(unsw)
+summary(unsw)
+
+glimpse(cleaned_data_csv)
+summary(cleaned_data_csv)
+
+#============================================================================================================
+#3.1.1: Which network protocols (e.g., TCP, UDP, ICMP) have the most frequency associated with the attacking?
+
+#This count the frequency of each "proto" by attack_cat
+protocol_freq <- cleaned_data_csv %>%
+  group_by(proto, attack_cat) %>%
+  summarise(count = n(), group = "drop") %>%
+  arrange(desc(count))
+
+head(protocol_freq, 10)
+
+top_protocols <- protocol_freq %>%
+  group_by(proto) %>%
+  summarise(total_count = sum(count)) %>%
+  arrange(desc(total_count)) %>%
+  slice_head(n = 10) %>%
+  pull(proto)
+
+protocol_top10 <- protocol_freq %>%
+  filter(proto %in% top_protocols)
+
+ggplot(protocol_top10, aes(x = reorder(proto, -count), y = count, fill = attack_cat)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(
+    title = "Top 10 Protocols Associated with Attack Categories",
+    x = "Protocol Type", y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), plot.title = element_text(hjust = 0.5, face = "bold"))
+
+
+#============================================================================================================
+#3.1.2: Are there any differences in terms of average data rates (rate) between the normal and attack traffic types?
+attack_rate_summary <- cleaned_data_csv %>%
+  group_by(attack_cat) %>%
+  summarise(
+    mean_rate = mean(rate, na.rm = TRUE),
+    median_rate = median(rate, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+ggplot(attack_rate_summary, aes(x = reorder(attack_cat, -mean_rate), y = mean_rate, fill = attack_cat)) +
+  geom_col(width = 0.9, show.legend = FALSE) +
+  labs(
+    title = "Average Data Rate Across Attack Categories",
+    x = "Attack Category",
+    y = "Mean Data Rate (bytes/sec)"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+#============================================================================================================
+#3.1.3: How do different protocol states correlate with specific types of network attacks (attack_cat)?
+state_attack_summary <- cleaned_data_csv %>%
+  group_by(state, attack_cat) %>%
+  summarise(count = n(), .groups = "drop")
+
+ggplot(state_attack_summary, aes(x = state, y = count, fill = attack_cat)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Protocol State vs. Attack Category",
+    x = "Protocol State",
+    y = "Attack Count"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
 
 #ALTAYEB ABDELGADIR MOHAMED
 
