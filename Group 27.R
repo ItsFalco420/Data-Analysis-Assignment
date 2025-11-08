@@ -135,75 +135,60 @@ summary(unsw)
 glimpse(cleaned_data_csv)
 summary(cleaned_data_csv)
 
-#============================================================================================================
-#3.1.1: Which network protocols (e.g., TCP, UDP, ICMP) have the most frequency associated with the attacking?
-
-#This count the frequency of each "proto" by attack_cat
-protocol_freq <- cleaned_data_csv %>%
-  group_by(proto, attack_cat) %>%
-  summarise(count = n(), group = "drop") %>%
-  arrange(desc(count))
-
-head(protocol_freq, 10)
-
-top_protocols <- protocol_freq %>%
-  group_by(proto) %>%
-  summarise(total_count = sum(count)) %>%
-  arrange(desc(total_count)) %>%
-  slice_head(n = 10) %>%
-  pull(proto)
-
-protocol_top10 <- protocol_freq %>%
-  filter(proto %in% top_protocols)
-
-ggplot(protocol_top10, aes(x = reorder(proto, -count), y = count, fill = attack_cat)) +
-  geom_bar(stat = "identity", position = "stack") +
-  labs(
-    title = "Top 10 Protocols Associated with Attack Categories",
-    x = "Protocol Type", y = "Count") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1), plot.title = element_text(hjust = 0.5, face = "bold"))
 
 
 #============================================================================================================
-#3.1.2: Are there any differences in terms of average data rates (rate) between the normal and attack traffic types?
-attack_rate_summary <- cleaned_data_csv %>%
+#3.1.1: How do the amounts of source bytes (sbytes) differ across various attack categories?
+
+sbytes_summary <- cleaned_data_csv %>%
   group_by(attack_cat) %>%
-  summarise(
-    mean_rate = mean(rate, na.rm = TRUE),
-    median_rate = median(rate, na.rm = TRUE),
-    .groups = "drop"
-  )
+  summarise(mean_sbytes = mean(sbytes, na.rm = TRUE))
 
-ggplot(attack_rate_summary, aes(x = reorder(attack_cat, -mean_rate), y = mean_rate, fill = attack_cat)) +
-  geom_col(width = 0.9, show.legend = FALSE) +
-  labs(
-    title = "Average Data Rate Across Attack Categories",
-    x = "Attack Category",
-    y = "Mean Data Rate (bytes/sec)"
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1)
-  )
+ggplot(sbytes_summary, aes(x = reorder(attack_cat, -mean_sbytes), y = mean_sbytes, fill = attack_cat)) +
+  geom_col() +
+  labs(title = "Average Source Bytes by Attack Category",
+       x = "Attack Category", y = "Average Source Bytes") +
+  theme_minimal()
 
 #============================================================================================================
-#3.1.3: How do different protocol states correlate with specific types of network attacks (attack_cat)?
-state_attack_summary <- cleaned_data_csv %>%
-  group_by(state, attack_cat) %>%
-  summarise(count = n(), .groups = "drop")
+#3.1.2: How do the amounts of destination bytes (dbytes) vary among different attack categories?
+dbytes_summary <- cleaned_data_csv %>%
+  group_by(attack_cat) %>%
+  summarise(mean_dbytes = mean(dbytes, na.rm = TRUE))
 
-ggplot(state_attack_summary, aes(x = state, y = count, fill = attack_cat)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(
-    title = "Protocol State vs. Attack Category",
-    x = "Protocol State",
-    y = "Attack Count"
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1)
+ggplot(dbytes_summary, aes(x = reorder(attack_cat, -mean_dbytes), y = mean_dbytes, fill = attack_cat)) +
+  geom_col() +
+  labs(title = "Average Destination Bytes by Attack Category",
+       x = "Attack Category", y = "Average Destination Bytes") +
+  theme_minimal()
+
+#============================================================================================================
+#3.1.3: What is the relationship between source bytes (sbytes) and destination bytes (dbytes) for each attack and normal category?
+bytes_summary <- cleaned_data_csv %>%
+  mutate(traffic_type = ifelse(tolower(attack_cat) == "normal", "Normal", "Attack")) %>%
+  group_by(traffic_type) %>%
+  summarise(
+    total_sbytes = sum(sbytes, na.rm = TRUE),
+    total_dbytes = sum(dbytes, na.rm = TRUE),
+    mean_sbytes = mean(sbytes, na.rm = TRUE),
+    mean_dbytes = mean(dbytes, na.rm = TRUE)
   )
+
+print(bytes_summary)
+
+bytes_long <- bytes_summary %>%
+  mutate(across(starts_with("total_"), ~ .x / 1e6)) %>%
+  select(traffic_type, total_sbytes, total_dbytes) %>%
+  pivot_longer(cols = c(total_sbytes, total_dbytes),
+               names_to = "byte_type", values_to = "total_value")
+
+ggplot(bytes_long, aes(x = traffic_type, y = total_value, fill = byte_type)) +
+  geom_col(position = "dodge") +
+  labs(title = "Total Source and Destination Bytes by Traffic Type",
+       x = "Traffic Type", y = "Total Bytes (MB)", fill = "Byte Type") +
+  theme_minimal()
+
+#==============================================================================================================
 
 #ALTAYEB ABDELGADIR MOHAMED
 
