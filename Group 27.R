@@ -215,7 +215,9 @@ par(mfrow = c(1,1), mar = c(5,4,4,2)+0.1)
 boxplot(unsw$dur ~ unsw$attack_cat,
         main = "Connection Duration by Attack Type",
         xlab = "Attack Type",
-        ylab = "Duration")
+        ylab = "Duration",
+        las = 2,        
+        cex.axis = 0.8
 
 # ======================================================
 # Analysis 2-2: Average bytes by attack type
@@ -229,16 +231,15 @@ print(avg_sbytes)
 print(avg_dbytes)
 
 
-par(mfrow = c(1, 2))  
+par(mfrow = c(1, 2), mar = c(5,4,4,2)+0.1)
 boxplot(unsw$sbytes ~ unsw$attack_cat,
-        main = "Source Bytes by Attack Type",
-        xlab = "Attack Type",
-        ylab = "Source Bytes")
+        main = "Source Bytes by Attack Type", xlab = "Attack Type", ylab = "Source Bytes",
+        las = 2, cex.axis = 0.8)
 boxplot(unsw$dbytes ~ unsw$attack_cat,
-        main = "Destination Bytes by Attack Type",
-        xlab = "Attack Type",
-        ylab = "Destination Bytes")
-par(mfrow = c(1, 1))  
+        main = "Destination Bytes by Attack Type", xlab = "Attack Type", ylab = "Destination Bytes",
+        las = 2, cex.axis = 0.8)
+par(mfrow = c(1,1))
+
 
 # ======================================================
 # Analysis 2-3: Relationship between duration and total bytes
