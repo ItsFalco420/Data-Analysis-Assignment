@@ -220,7 +220,7 @@ boxplot(unsw$dur ~ unsw$attack_cat,
         xlab = "Attack Type",
         ylab = "Duration",
         las = 2,       
-        cex.axis = 0.8) ]
+        cex.axis = 0.8) 
 
 # ======================================================
 # Analysis 2-2: Average bytes by attack type
