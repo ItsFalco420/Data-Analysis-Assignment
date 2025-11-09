@@ -191,8 +191,81 @@ ggplot(bytes_long, aes(x = traffic_type, y = total_value, fill = byte_type)) +
 #==============================================================================================================
 
 #AFRAH ARSHAD SHAH (TP085430)
-                     
+# Objective 2: To examine how connection duration and 
+#              data transfer volume vary across attack types.  
 
+library(tidyverse)
+unsw <- read_csv("UNSW_NB15_cleaned.csv", show_col_types = FALSE)
+                     
+glimpse(unsw)   
+summary(unsw)  
+
+unsw$attack_cat <- as.factor(unsw$attack_cat)
+table(unsw$attack_cat)                   
+
+# ======================================================
+# Analysis 2-1: Average connection duration by attack type
+# ======================================================
+
+avg_duration <- tapply(unsw$dur, unsw$attack_cat, mean, na.rm = TRUE)
+print(avg_duration)                    
+
+boxplot(unsw$dur ~ unsw$attack_cat,
+        main = "Connection Duration by Attack Type",
+        xlab = "Attack Type",
+        ylab = "Duration")
+
+# ======================================================
+# Analysis 2-2: Average bytes by attack type
+# ======================================================
+
+avg_sbytes <- tapply(unsw$sbytes, unsw$attack_cat, mean, na.rm = TRUE)
+avg_dbytes <- tapply(unsw$dbytes, unsw$attack_cat, mean, na.rm = TRUE)
+
+
+print(avg_sbytes)
+print(avg_dbytes)
+
+
+par(mfrow = c(1, 2))  
+boxplot(unsw$sbytes ~ unsw$attack_cat,
+        main = "Source Bytes by Attack Type",
+        xlab = "Attack Type",
+        ylab = "Source Bytes")
+boxplot(unsw$dbytes ~ unsw$attack_cat,
+        main = "Destination Bytes by Attack Type",
+        xlab = "Attack Type",
+        ylab = "Destination Bytes")
+par(mfrow = c(1, 1))  
+
+# ======================================================
+# Analysis 2-3: Relationship between duration and total bytes
+# ======================================================
+
+unsw$total_bytes <- unsw$sbytes + unsw$dbytes
+
+cor_value <- cor(unsw$dur, unsw$total_bytes, use = "complete.obs")
+print(cor_value) 
+
+plot(unsw$dur, unsw$total_bytes,
+     main = "Duration vs Total Bytes",
+     xlab = "Duration",
+     ylab = "Total Bytes",
+     pch = 16, col = "blue")
+
+cat("\nScript finished running successfully.\n")
+                     
+#==============================================================================================================
+
+
+
+
+
+
+
+
+                     
+                     
 #WONG ZHENG HAN
 
 #QUAN JIA YONG
