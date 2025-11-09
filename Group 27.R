@@ -208,7 +208,9 @@ table(unsw$attack_cat)
 # ======================================================
 
 avg_duration <- tapply(unsw$dur, unsw$attack_cat, mean, na.rm = TRUE)
-print(avg_duration)                    
+print(avg_duration)    
+                     
+par(mfrow = c(1,1), mar = c(5,4,4,2)+0.1)
 
 boxplot(unsw$dur ~ unsw$attack_cat,
         main = "Connection Duration by Attack Type",
