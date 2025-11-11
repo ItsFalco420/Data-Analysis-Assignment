@@ -144,6 +144,8 @@ sbytes_summary <- cleaned_data_csv %>%
   group_by(attack_cat) %>%
   summarise(mean_sbytes = mean(sbytes, na.rm = TRUE))
 
+
+#Individual attack categories
 ggplot(sbytes_summary, aes(x = reorder(attack_cat, -mean_sbytes), y = mean_sbytes, fill = attack_cat)) +
   geom_col() +
   labs(title = "Average Source Bytes by Attack Category",
