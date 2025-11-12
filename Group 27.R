@@ -142,7 +142,12 @@ summary(cleaned_data_csv)
 
 sbytes_summary <- cleaned_data_csv %>%
   group_by(attack_cat) %>%
-  summarise(mean_sbytes = mean(sbytes, na.rm = TRUE))
+  summarise(mean_sbytes = mean(sbytes, na.rm = TRUE),
+            median_sbytes = median(sbytes, na.rm = TRUE),
+            n = n()) %>%
+  arrange(desc(mean_sbytes))
+
+print(sbytes_summary)
 
 
 #Individual attack categories
@@ -150,19 +155,27 @@ ggplot(sbytes_summary, aes(x = reorder(attack_cat, -mean_sbytes), y = mean_sbyte
   geom_col() +
   labs(title = "Average Source Bytes by Attack Category",
        x = "Attack Category", y = "Average Source Bytes") +
-  theme_minimal()
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 #============================================================================================================
 #3.1.2: How do the amounts of destination bytes (dbytes) vary among different attack categories?
 dbytes_summary <- cleaned_data_csv %>%
   group_by(attack_cat) %>%
-  summarise(mean_dbytes = mean(dbytes, na.rm = TRUE))
+  summarise(mean_dbytes = mean(dbytes, na.rm = TRUE),
+            median_dbytes = median(dbytes, na.rm = TRUE),
+            n = n()) %>%
+  arrange(desc(mean_dbytes))
+
+print(dbytes_summary)
 
 ggplot(dbytes_summary, aes(x = reorder(attack_cat, -mean_dbytes), y = mean_dbytes, fill = attack_cat)) +
   geom_col() +
   labs(title = "Average Destination Bytes by Attack Category",
-       x = "Attack Category", y = "Average Destination Bytes") +
-  theme_minimal()
+       x = "Attack Category", y = "Mean Destination Bytes") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 
 #============================================================================================================
 #3.1.3: What is the relationship between source bytes (sbytes) and destination bytes (dbytes) for each attack and normal category?
@@ -189,6 +202,10 @@ ggplot(bytes_long, aes(x = traffic_type, y = total_value, fill = byte_type)) +
   labs(title = "Total Source and Destination Bytes by Traffic Type",
        x = "Traffic Type", y = "Total Bytes (MB)", fill = "Byte Type") +
   theme_minimal()
+
+#Hypothesis Testing
+
+
 
 #==============================================================================================================
 
