@@ -202,9 +202,19 @@ ggplot(bytes_long, aes(x = traffic_type, y = total_value, fill = byte_type)) +
        x = "Traffic Type", y = "Total Bytes (MB)", fill = "Byte Type") +
   theme_minimal()
 
-#Hypothesis Testing
+#============================================================================================================
+#Hypothesis Testing: Two-sample t-test
 
+cleaned_data_csv$total_bytes <- cleaned_data_csv$sbytes + cleaned_data_csv$dbytes
 
+cleaned_data_csv$traffic_type <- ifelse(tolower(cleaned_data_csv$attack_cat) == "normal","Normal", "Attack")
+
+t_test_results <- t.test(total_bytes ~ traffic_type,
+                         data = cleaned_data_csv,
+                         alternative = "two.sided",
+                         var_equal = FALSE)
+
+print(t_test_results)
 
 #==============================================================================================================
 
