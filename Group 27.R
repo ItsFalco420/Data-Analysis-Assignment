@@ -124,21 +124,62 @@ library(scales)
 library(reshape2)
 library(dplyr)
 library(tidyr)
-
-cleaned_data_csv <- read_csv("UNSW_NB15_cleaned.csv", show_col_types = FALSE) %>%
-  clean_names()
-
-#This is for checking
-glimpse(unsw)
-summary(unsw)
-
-glimpse(cleaned_data_csv)
-summary(cleaned_data_csv)
-
+library(scales)
 
 
 #============================================================================================================
-#3.1.1: How do the amounts of source bytes (sbytes) differ across various attack categories?
+#3.2: Data Cleaning for sbytes and dybtes with attack
+cleaned_bytes_dataset <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE) %>%
+  clean_names() %>%
+  mutate(
+    sbytes = as.numeric(sbytes),
+    dbytes = as.numeric(dbytes),
+    attack_cat = as.factor(attack_cat),
+  ) %>%
+  
+  #3.2.1 Handling missing values
+  drop_na(sbytes, dbytes, attack_cat) %>%
+  select(sbytes, dbytes, attack_cat)
+
+#3.2.2: Handling Outliers
+cleaned_bytes_dataset <- cleaned_bytes_dataset %>%
+  filter(
+    sbytes >= 0 & sbytes <= quantile(sbytes, 0.99),
+    dbytes >= 0 & dbytes <= quantile(dbytes, 0.99)
+  )
+
+#3.2.3: Duplicates Checking
+cleaned_bytes_dataset <- cleaned_bytes_dataset %>%
+  distinct()
+
+#3.2.4: Data Type Checking
+str(cleaned_bytes_dataset)
+
+#3.2.5: Handle Inconsistent Categorical Entries
+levels(cleaned_bytes_dataset$attack_cat)
+
+#3.2.6: Check for Negative or Zero Values
+cleaned_bytes_dataset <- cleaned_bytes_dataset %>%
+  filter(sbytes > 0, dbytes > 0)
+
+#3.2.7: Normalize or Scale Data
+cleaned_bytes_dataset <- cleaned_bytes_dataset %>%
+  mutate(
+    sbytes_scaled = scale(sbytes),
+    dbytes_scaled = scale(dbytes)
+  )
+
+#3.2.8: Final Visualization
+ggplot(cleaned_bytes_dataset, aes(x = sbytes, y = dbytes, color = attack_cat)) +
+  geom_point(alpha = 0.4) +
+  geom_density_2d() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_minimal() +
+  labs(title = "sbytes vs dbytes with Density Contours by Attack Category")
+
+#============================================================================================================
+#1: How do the amounts of source bytes (sbytes) differ across various attack categories?
 
 sbytes_summary <- cleaned_data_csv %>%
   group_by(attack_cat) %>%
@@ -158,7 +199,7 @@ ggplot(sbytes_summary, aes(x = reorder(attack_cat, -mean_sbytes), y = mean_sbyte
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 #============================================================================================================
-#3.1.2: How do the amounts of destination bytes (dbytes) vary among different attack categories?
+#2: How do the amounts of destination bytes (dbytes) vary among different attack categories?
 dbytes_summary <- cleaned_data_csv %>%
   group_by(attack_cat) %>%
   summarise(mean_dbytes = mean(dbytes, na.rm = TRUE),
@@ -177,7 +218,7 @@ ggplot(dbytes_summary, aes(x = reorder(attack_cat, -mean_dbytes), y = mean_dbyte
 
 
 #============================================================================================================
-#3.1.3: What is the relationship between source bytes (sbytes) and destination bytes (dbytes) for each attack and normal category?
+#3: What is the relationship between source bytes (sbytes) and destination bytes (dbytes) for each attack and normal category?
 bytes_summary <- cleaned_data_csv %>%
   mutate(traffic_type = ifelse(tolower(attack_cat) == "normal", "Normal", "Attack")) %>%
   group_by(traffic_type) %>%
