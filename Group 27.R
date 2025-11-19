@@ -125,6 +125,7 @@ library(reshape2)
 library(dplyr)
 library(tidyr)
 library(scales)
+library(viridis)
 
 
 #============================================================================================================
@@ -170,13 +171,14 @@ cleaned_bytes_dataset <- cleaned_bytes_dataset %>%
   )
 
 #3.2.8: Final Visualization
-ggplot(cleaned_bytes_dataset, aes(x = sbytes, y = dbytes, color = attack_cat)) +
-  geom_point(alpha = 0.4) +
-  geom_density_2d() +
+ggplot(cleaned_bytes_dataset, aes(x = sbytes, y = dbytes)) +
+  geom_hex(bins = 40) +
+  scale_fill_viridis_c(option = "C") +
   scale_x_log10() +
   scale_y_log10() +
   theme_minimal() +
-  labs(title = "sbytes vs dbytes with Density Contours by Attack Category")
+  labs(title = "Hexbin of sbytes vs dbytes", x = "sbytes (log scale)", y = "dbytes (log scale)")
+
 
 #============================================================================================================
 #1: How do the amounts of source bytes (sbytes) differ across various attack categories?
