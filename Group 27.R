@@ -171,19 +171,23 @@ cleaned_bytes_dataset <- cleaned_bytes_dataset %>%
   )
 
 #3.2.8: Final Visualization
-ggplot(cleaned_bytes_dataset, aes(x = sbytes, y = dbytes)) +
-  geom_hex(bins = 40) +
-  scale_fill_viridis_c(option = "C") +
+ggplot(cleaned_bytes_dataset, aes(x = sbytes, fill = attack_cat)) +
+  geom_density(alpha = 0.5) +
   scale_x_log10() +
-  scale_y_log10() +
   theme_minimal() +
-  labs(title = "Hexbin of sbytes vs dbytes", x = "sbytes (log scale)", y = "dbytes (log scale)")
+  labs(title = "Density Plot of sbytes by Attack Category", x = "sbytes (log scale)", y = "Density")
+
+ggplot(cleaned_bytes_dataset, aes(x = dbytes, fill = attack_cat)) +
+  geom_density(alpha = 0.5) +
+  scale_x_log10() +
+  theme_minimal() +
+  labs(title = "Density Plot of dbytes by Attack Category", x = "dbytes (log scale)", y = "Density")
 
 
 #============================================================================================================
 #1: How do the amounts of source bytes (sbytes) differ across various attack categories?
 
-sbytes_summary <- cleaned_data_csv %>%
+sbytes_summary <- cleaned_bytes_dataset %>%
   group_by(attack_cat) %>%
   summarise(mean_sbytes = mean(sbytes, na.rm = TRUE),
             median_sbytes = median(sbytes, na.rm = TRUE),
@@ -202,7 +206,7 @@ ggplot(sbytes_summary, aes(x = reorder(attack_cat, -mean_sbytes), y = mean_sbyte
 
 #============================================================================================================
 #2: How do the amounts of destination bytes (dbytes) vary among different attack categories?
-dbytes_summary <- cleaned_data_csv %>%
+dbytes_summary <- cleaned_bytes_dataset %>%
   group_by(attack_cat) %>%
   summarise(mean_dbytes = mean(dbytes, na.rm = TRUE),
             median_dbytes = median(dbytes, na.rm = TRUE),
@@ -221,7 +225,7 @@ ggplot(dbytes_summary, aes(x = reorder(attack_cat, -mean_dbytes), y = mean_dbyte
 
 #============================================================================================================
 #3: What is the relationship between source bytes (sbytes) and destination bytes (dbytes) for each attack and normal category?
-bytes_summary <- cleaned_data_csv %>%
+bytes_summary <- cleaned_bytes_dataset %>%
   mutate(traffic_type = ifelse(tolower(attack_cat) == "normal", "Normal", "Attack")) %>%
   group_by(traffic_type) %>%
   summarise(
@@ -248,9 +252,9 @@ ggplot(bytes_long, aes(x = traffic_type, y = total_value, fill = byte_type)) +
 #============================================================================================================
 #Hypothesis Testing: Two-sample t-test
 
-cleaned_data_csv$total_bytes <- cleaned_data_csv$sbytes + cleaned_data_csv$dbytes
+cleaned_bytes_dataset$total_bytes <- cleaned_bytes_dataset$sbytes + cleaned_bytes_dataset$dbytes
 
-cleaned_data_csv$traffic_type <- ifelse(tolower(cleaned_data_csv$attack_cat) == "normal","Normal", "Attack")
+cleaned_bytes_dataset$traffic_type <- ifelse(tolower(cleaned_bytes_dataset$attack_cat) == "normal","Normal", "Attack")
 
 t_test_results <- t.test(total_bytes ~ traffic_type,
                          data = cleaned_data_csv,
