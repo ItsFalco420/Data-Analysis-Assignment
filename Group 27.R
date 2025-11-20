@@ -121,7 +121,6 @@ library(tidyverse)
 library(janitor)
 library(ggplot2)
 library(scales)
-library(reshape2)
 library(dplyr)
 library(tidyr)
 library(scales)
@@ -224,30 +223,33 @@ ggplot(dbytes_summary, aes(x = reorder(attack_cat, -mean_dbytes), y = mean_dbyte
 
 
 #============================================================================================================
-#3: What is the relationship between source bytes (sbytes) and destination bytes (dbytes) for each attack and normal category?
+#3: What is the relationship between the total source bytes (sbytes) and destination bytes (dbytes) for each attack and normal category?
 bytes_summary <- cleaned_bytes_dataset %>%
   mutate(traffic_type = ifelse(tolower(attack_cat) == "normal", "Normal", "Attack")) %>%
   group_by(traffic_type) %>%
   summarise(
-    total_sbytes = sum(sbytes, na.rm = TRUE),
-    total_dbytes = sum(dbytes, na.rm = TRUE),
+    total_sbytes = sum(sbytes, na.rm = TRUE) / 1e6,
+    total_dbytes = sum(dbytes, na.rm = TRUE) / 1e6,
     mean_sbytes = mean(sbytes, na.rm = TRUE),
     mean_dbytes = mean(dbytes, na.rm = TRUE)
   )
 
 print(bytes_summary)
 
-bytes_long <- bytes_summary %>%
-  mutate(across(starts_with("total_"), ~ .x / 1e6)) %>%
-  select(traffic_type, total_sbytes, total_dbytes) %>%
+bytes_summary_long <- bytes_summary %>%
   pivot_longer(cols = c(total_sbytes, total_dbytes),
-               names_to = "byte_type", values_to = "total_value")
+               names_to = "byte_type",
+               values_to = "total_value")
 
-ggplot(bytes_long, aes(x = traffic_type, y = total_value, fill = byte_type)) +
-  geom_col(position = "dodge") +
-  labs(title = "Total Source and Destination Bytes by Traffic Type",
-       x = "Traffic Type", y = "Total Bytes (MB)", fill = "Byte Type") +
-  theme_minimal()
+ggplot(bytes_summary_long, aes(x = traffic_type, y = total_value, fill = byte_type)) +
+  geom_col() +
+  facet_wrap(~ byte_type, scales = "free_y") +
+  theme_minimal() +
+  labs(
+    title = "Total Bytes by Traffic Type",
+    x = "Traffic Type",
+    y = "Total Bytes (MB)"
+  )
 
 #============================================================================================================
 #Hypothesis Testing: Two-sample t-test
