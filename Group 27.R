@@ -252,18 +252,27 @@ ggplot(bytes_summary_long, aes(x = traffic_type, y = total_value, fill = byte_ty
   )
 
 #============================================================================================================
-#Hypothesis Testing: Two-sample t-test
+#Hypothesis Testing: Two-sample t-test for Data Analysis 3
+
+summary_bytes_test <- cleaned_bytes_dataset %>%
+  group_by(traffic_type) %>%
+  summarise(
+    total_sbytes = sum(sbytes, na.rm = TRUE),
+    total_dbytes = sum(dbytes, na.rm = TRUE),
+    mean_sbytes  = mean(sbytes, na.rm = TRUE),
+    mean_dbytes  = mean(dbytes, na.rm = TRUE)
+  )
+
+print(summary_bytes_test)
 
 cleaned_bytes_dataset$total_bytes <- cleaned_bytes_dataset$sbytes + cleaned_bytes_dataset$dbytes
 
-cleaned_bytes_dataset$traffic_type <- ifelse(tolower(cleaned_bytes_dataset$attack_cat) == "normal","Normal", "Attack")
+t_test_result <- t.test(
+  total_bytes ~ traffic_type,
+  data = cleaned_bytes_dataset
+)
 
-t_test_results <- t.test(total_bytes ~ traffic_type,
-                         data = cleaned_data_csv,
-                         alternative = "two.sided",
-                         var_equal = FALSE)
-
-print(t_test_results)
+print(t_test_result)
 
 #==============================================================================================================
 
