@@ -368,8 +368,163 @@ cat("\nScript finished running successfully.\n")
 
                      
                      
-#WONG ZHENG HAN
+#==============================================================================================================
+# WONG ZHENG HAN (TP074212)
+# Libraries
+library(readr)
+library(dplyr)
+library(janitor)
+library(ggplot2)
+library(stringr)
 
+#3.1: Data Cleaning for dur and sbytes with attack category
+dur_sbytes_dataset <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE) %>%
+  clean_names() %>%
+  mutate(
+    dur       = as.numeric(dur),
+    sbytes    = as.numeric(sbytes),
+    attack_cat = str_to_lower(attack_cat),     # make categories consistent (e.g. "Normal" -> "normal")
+    attack_cat = as.factor(attack_cat)
+  ) %>%
+
+  #3.1.1 Handling missing values
+  drop_na(dur, sbytes, attack_cat) %>%
+
+  # Keep only what is needed for this objective
+  select(dur, sbytes, attack_cat)
+
+#3.1.2: Handling Outliers (cap extreme 1% tails)
+dur_sbytes_dataset <- dur_sbytes_dataset %>%
+  filter(
+    dur    >= 0 & dur    <= quantile(dur, 0.99),
+    sbytes >= 0 & sbytes <= quantile(sbytes, 0.99)
+  )
+
+#3.1.3: Duplicates Checking
+dur_sbytes_dataset <- dur_sbytes_dataset %>%
+  distinct()
+
+#3.1.4: Data Type Checking
+str(dur_sbytes_dataset)
+
+#3.1.5: Handle Inconsistent Categorical Entries
+levels(dur_sbytes_dataset$attack_cat)
+
+#3.1.6: Check for Non-positive Values (if you want to remove zeros for log-scale plots)
+dur_sbytes_dataset <- dur_sbytes_dataset %>%
+  filter(dur > 0, sbytes > 0)
+
+#3.1.7: Normalize or Scale Data (for modelling if needed)
+dur_sbytes_dataset <- dur_sbytes_dataset %>%
+  mutate(
+    dur_scaled    = as.numeric(scale(dur)),
+    sbytes_scaled = as.numeric(scale(sbytes))
+  )
+#===============================================================
+#Objective 4: To Investigate how connection duration relates to 
+#             the amount of data sent by the source device.
+#===============================================================
+
+# Analysis 4-1:
+# Do longer connections generally transmit more source bytes?
+
+# Correlation (overall)
+cor_test_result <- cor.test(dur_sbytes_dataset$dur, dur_sbytes_dataset$sbytes)
+cor_test_result
+
+# Scatterplot with trendline (log scale helps because sbytes is very skewed)
+ggplot(dur_sbytes_dataset, aes(x = dur, y = sbytes)) +
+  geom_point(alpha = 0.3) +
+  scale_x_log10() +
+  scale_y_log10() +
+  geom_smooth(method = "lm", se = FALSE) +
+  theme_minimal() +
+  labs(
+    title = "Scatterplot of Connection Duration vs Source Bytes",
+    x = "Connection Duration (log10 scale)",
+    y = "Source Bytes (log10 scale)"
+  )
+
+# Analysis 4-2:
+# Are there specific attack categories where long connections transmit unusually high or low amounts of data?
+
+# Summary statistics by attack category
+attack_summary <- dur_sbytes_dataset %>%
+  group_by(attack_cat) %>%
+  summarise(
+    n              = n(),
+    mean_dur       = mean(dur),
+    median_dur     = median(dur),
+    mean_sbytes    = mean(sbytes),
+    median_sbytes  = median(sbytes),
+    .groups = "drop"
+  )
+
+attack_summary
+
+# Boxplot of sbytes by attack category
+ggplot(dur_sbytes_dataset, aes(x = attack_cat, y = sbytes)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  scale_y_log10() +
+  theme_minimal() +
+  labs(
+    title = "Source Bytes by Attack Category",
+    x = "Attack Category",
+    y = "Source Bytes (log10 scale)"
+  )
+
+# Boxplot of dur by attack category
+ggplot(dur_sbytes_dataset, aes(x = attack_cat, y = dur)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  scale_y_log10() +
+  theme_minimal() +
+  labs(
+    title = "Connection Duration by Attack Category",
+    x = "Attack Category",
+    y = "Duration (log10 scale)"
+  )
+
+# Analysis 4-3:
+# Do short-duration connections ever send disproportionately large amounts of data?
+
+# Define thresholds for "short" duration and "high" sbytes (using quartiles)
+dur_short_threshold   <- quantile(dur_sbytes_dataset$dur, 0.25)
+sbytes_high_threshold <- quantile(dur_sbytes_dataset$sbytes, 0.75)
+
+short_high_burst <- dur_sbytes_dataset %>%
+  filter(dur <= dur_short_threshold,
+         sbytes >= sbytes_high_threshold)
+
+# Inspect how many such cases there are by attack_cat
+burst_summary <- short_high_burst %>%
+  group_by(attack_cat) %>%
+  summarise(
+    n_cases = n(),
+    mean_dur = mean(dur),
+    mean_sbytes = mean(sbytes),
+    .groups = "drop"
+  )
+
+burst_summary
+
+# Visualise these "burst" connections on the same scatterplot
+ggplot(dur_sbytes_dataset, aes(x = dur, y = sbytes)) +
+  geom_point(alpha = 0.15) +
+  geom_point(
+    data = short_high_burst,
+    aes(x = dur, y = sbytes, color = attack_cat),
+    alpha = 0.8
+  ) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_minimal() +
+  labs(
+    title = "Short-Duration, High-Source-Bytes Connections Highlighted",
+    x = "Connection Duration (log10 scale)",
+    y = "Source Bytes (log10 scale)"
+  )
+
+#==============================================================================================================
 #QUAN JIA YONG
 
 #ALTAYEB ABDELGADIR MOHAMED
