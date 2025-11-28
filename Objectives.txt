@@ -21,7 +21,7 @@ Analysis 1-3: What are the external factor that interact with revision method
 to influence the academic achievement? 
 
 dateline:
-1st week of November
+4st week of November
 
 How to do?
 Do your objective under one R file named "Group 27"
