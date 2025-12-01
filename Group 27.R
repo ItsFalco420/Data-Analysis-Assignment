@@ -524,6 +524,24 @@ ggplot(dur_sbytes_dataset, aes(x = dur, y = sbytes)) +
     y = "Source Bytes (log10 scale)"
   )
 
+# ============================================
+# HYPOTHESIS TESTING: TWO-SAMPLE T-TEST
+# ============================================
+
+# Hypothesis:
+# H0 (Null): There is no significant difference in mean sbytes between Normal and Attack traffic.
+# H1 (Alternative): There is a significant difference in mean sbytes between Normal and Attack traffic.
+
+normal_data <- cleaned_dur_sbytes_dataset %>%
+  filter(attack_cat == "Normal") %>%
+  pull(sbytes)
+
+attack_data <- cleaned_dur_sbytes_dataset %>%
+  filter(attack_cat != "Normal") %>%
+  pull(sbytes)
+
+t.test(normal_data, attack_data, alternative = "two.sided")
+
 #==============================================================================================================
 #QUAN JIA YONG
 
