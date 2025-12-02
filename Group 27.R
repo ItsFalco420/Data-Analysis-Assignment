@@ -413,7 +413,7 @@ str(dur_sbytes_dataset)
 #3.1.5: Handle Inconsistent Categorical Entries
 levels(dur_sbytes_dataset$attack_cat)
 
-#3.1.6: Check for Non-positive Values (if you want to remove zeros for log-scale plots)
+#3.1.6: Check for Non-positive Values
 dur_sbytes_dataset <- dur_sbytes_dataset %>%
   filter(dur > 0, sbytes > 0)
 
@@ -423,6 +423,28 @@ dur_sbytes_dataset <- dur_sbytes_dataset %>%
     dur_scaled    = as.numeric(scale(dur)),
     sbytes_scaled = as.numeric(scale(sbytes))
   )
+
+  #3.1.8: Final Visualization
+cleaned_dataset <- cleaned_dataset %>%
+  mutate(
+    dur_group = case_when(
+      dur < 1 ~ "Short",
+      dur < 10 ~ "Medium",
+      TRUE ~ "Long"
+    )
+  )
+
+summary_sbytes <- cleaned_dataset %>%
+  group_by(dur_group) %>%
+  summarise(avg_sbytes = mean(sbytes))
+
+ggplot(summary_sbytes, aes(x = dur_group, y = avg_sbytes)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Average Source Bytes by Connection Duration",
+       x = "Duration Group",
+       y = "Average sbytes")
+
 #===============================================================
 #Objective 4: To Investigate how connection duration relates to 
 #             the amount of data sent by the source device.
@@ -436,16 +458,30 @@ cor_test_result <- cor.test(dur_sbytes_dataset$dur, dur_sbytes_dataset$sbytes)
 cor_test_result
 
 # Scatterplot with trendline (log scale helps because sbytes is very skewed)
-ggplot(dur_sbytes_dataset, aes(x = dur, y = sbytes)) +
-  geom_point(alpha = 0.3) +
-  scale_x_log10() +
-  scale_y_log10() +
-  geom_smooth(method = "lm", se = FALSE) +
-  theme_minimal() +
+dur_sbytes_dataset <- dur_sbytes_dataset %>%
+  mutate(
+    dur_group = cut(
+      dur,
+      breaks = c(0, 0.01, 0.1, 1, 10, Inf),
+      labels = c("Very Short", "Short", "Medium", "Long", "Very Long")
+    )
+  )
+
+# Summarise average sbytes for each duration group
+dur_sbytes_summary <- dur_sbytes_dataset %>%
+  group_by(dur_group) %>%
+  summarise(
+    avg_sbytes = mean(sbytes, na.rm = TRUE)
+  )
+
+# Bar chart with correct sbytes values
+ggplot(dur_sbytes_summary, aes(x = dur_group, y = avg_sbytes)) +
+  geom_bar(stat = "identity", alpha = 0.9) +
+  theme_minimal(base_size = 14) +
   labs(
-    title = "Scatterplot of Connection Duration vs Source Bytes",
-    x = "Connection Duration (log10 scale)",
-    y = "Source Bytes (log10 scale)"
+    title = "Average Source Bytes by Connection Duration",
+    x = "Connection Duration Group",
+    y = "Average Source Bytes"
   )
 
 # Analysis 4-2:
@@ -465,15 +501,15 @@ attack_summary <- dur_sbytes_dataset %>%
 
 attack_summary
 
-# Boxplot of sbytes by attack category
-ggplot(dur_sbytes_dataset, aes(x = attack_cat, y = sbytes)) +
-  geom_boxplot(outlier.alpha = 0.3) +
+# Boxplot of dur by attack category
+ggplot(dur_sbytes_dataset, aes(x = attack_cat, y = dur)) +
+  stat_summary(fun = mean, geom = "bar", alpha = 0.8) +
   scale_y_log10() +
-  theme_minimal() +
+  theme_minimal(base_size = 12) +
   labs(
-    title = "Source Bytes by Attack Category",
+    title = "Average Connection Duration by Attack Category",
     x = "Attack Category",
-    y = "Source Bytes (log10 scale)"
+    y = "Average Duration (log scale)"
   )
 
 # Boxplot of dur by attack category
