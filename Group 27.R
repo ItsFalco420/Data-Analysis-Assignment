@@ -386,7 +386,7 @@ dur_sbytes_dataset <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE) %>%
   mutate(
     dur       = as.numeric(dur),
     sbytes    = as.numeric(sbytes),
-    attack_cat = str_to_lower(attack_cat),     # make categories consistent (e.g. "Normal" -> "normal")
+    attack_cat = str_to_lower(attack_cat),
     attack_cat = as.factor(attack_cat)
   ) %>%
 
