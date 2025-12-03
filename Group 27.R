@@ -498,6 +498,210 @@ t.test(normal_data, attack_data, alternative = "two.sided")
 #==============================================================================================================
 #ALTAYEB ABDELGADIR MOHAMED
 
+# Objective: To analyze the distribution of different types 
+#            of cyber-attacks and identify which attacks 
+#            are most prevalent.
+
+
+# 1. Load Packages -----------------------------------------
+
+library(tidyverse)
+
+# 2. Data Import & Subset ---------------------------------
+
+# Change the file name if your CSV is named differently
+unsw <- read_csv("5. UNSW_NB15.csv")
+
+# Keep only the columns needed for this objective
+data_alt <- unsw %>%
+  select(attack_cat, dur, sbytes, dbytes, spkts, dpkts, ct_state_ttl)
+
+# 3. Data Preparation -------------------------------------
+
+## 3.1 Checking Missing Values (5.2.1)
+colSums(is.na(data_alt))  
+
+# No NAs in these columns, so no drop_na() required
+# data_alt <- data_alt %>% drop_na()
+
+## 3.2 Handling Outliers (5.2.2)
+# For this objective we keep real values, no trimming is applied.
+# (Mentioned in report, no code needed.)
+
+## 3.3 Remove Duplicates (5.2.3)
+n_before <- nrow(data_alt)
+data_alt <- data_alt %>% distinct()
+n_after <- nrow(data_alt)
+duplicates_removed <- n_before - n_after 
+
+## 3.4 Data Type Checking (5.2.4)
+str(data_alt)
+
+data_alt <- data_alt %>%
+  mutate(
+    attack_cat   = as.factor(attack_cat),
+    ct_state_ttl = as.factor(ct_state_ttl),
+    dur          = as.numeric(dur),
+    sbytes       = as.numeric(sbytes),
+    dbytes       = as.numeric(dbytes),
+    spkts        = as.numeric(spkts),
+    dpkts        = as.numeric(dpkts)
+  )
+
+## 3.5 Handle Inconsistent Categories (5.2.5)
+levels(data_alt$attack_cat)  
+
+
+## 3.6 Remove Negative or Zero Values (5.2.6)
+data_alt <- data_alt %>%
+  filter(
+    dur    > 0,
+    sbytes > 0,
+    dbytes > 0,
+    spkts  > 0,
+    dpkts  > 0
+  )
+
+## 3.7 Scaling (only used for interpretation if needed) (5.2.7)
+data_alt <- data_alt %>%
+  mutate(
+    dur_scaled    = scale(dur),
+    sbytes_scaled = scale(sbytes),
+    dbytes_scaled = scale(dbytes),
+    spkts_scaled  = scale(spkts),
+    dpkts_scaled  = scale(dpkts)
+  )
+
+## 3.8 Final Visualization (5.2.8)
+attack_freq <- data_alt %>%
+  count(attack_cat) %>%
+  arrange(desc(n)) %>%
+  mutate(percentage = n / sum(n) * 100)
+
+attack_freq
+
+ggplot(attack_freq, aes(x = reorder(attack_cat, -n), y = n)) +
+  geom_col() +
+  labs(title = "Distribution of Attack Categories After Cleaning",
+       x = "Attack Category", y = "Number of Records") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+############################################################
+# 4. Exploratory Data Analysis (5.3)
+############################################################
+
+# 4.1 Summary Statistics (5.3.1) --------------------------
+
+# (a) frequency table already created: attack_freq
+
+# (b) identify most common attack category
+top_attack <- attack_freq$attack_cat[1]
+top_attack  
+
+# create group variable: top attack vs all others
+data_alt <- data_alt %>%
+  mutate(
+    group = if_else(attack_cat == top_attack,
+                    as.character(top_attack),
+                    "Other")
+  )
+
+# compare key features between top attack & others
+feature_summary <- data_alt %>%
+  group_by(group) %>%
+  summarise(
+    mean_dur    = mean(dur),
+    median_dur  = median(dur),
+    mean_sbytes = mean(sbytes),
+    mean_dbytes = mean(dbytes),
+    mean_spkts  = mean(spkts),
+    mean_dpkts  = mean(dpkts),
+    n           = n()
+  )
+
+feature_summary
+
+
+# 4.2 Charts (5.3.2) --------------------------------------
+
+## Chart 1: Frequency of Attack Categories
+ggplot(attack_freq, aes(x = reorder(attack_cat, -n), y = n)) +
+  geom_col() +
+  labs(title = "Frequency of Attack Categories",
+       x = "Attack Category",
+       y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+## Chart 2: Duration for top attack vs others (boxplot)
+ggplot(data_alt, aes(x = group, y = dur)) +
+  geom_boxplot(fill = "orange") +
+  scale_y_log10() +
+  labs(title = paste("Duration for", top_attack, "vs Others"),
+       x = "Group",
+       y = "Duration (log scale)") +
+  theme_minimal()
+
+## Chart 3: Source bytes for top attack vs others (boxplot)
+ggplot(data_alt, aes(x = group, y = sbytes)) +
+  geom_boxplot(fill = "lightgreen") +
+  scale_y_log10() +
+  labs(title = paste("Source Bytes for", top_attack, "vs Others"),
+       x = "Group",
+       y = "Source Bytes (log scale)") +
+  theme_minimal()
+
+## Chart 4: Average total packets per attack category
+flow_summary <- data_alt %>%
+  group_by(attack_cat) %>%
+  summarise(
+    mean_packets = mean(spkts + dpkts)
+  ) %>%
+  arrange(desc(mean_packets))
+
+flow_summary   
+
+ggplot(flow_summary, aes(x = reorder(attack_cat, -mean_packets), y = mean_packets)) +
+  geom_col(fill = "purple") +
+  labs(title = "Average Total Packets per Attack Type",
+       x = "Attack Category",
+       y = "Mean Packets") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+## Chart 5: ct_state_ttl counts across attacks
+state_dist <- data_alt %>%
+  count(attack_cat, ct_state_ttl)
+
+ggplot(state_dist, aes(x = ct_state_ttl, y = n, fill = attack_cat)) +
+  geom_col(position = "dodge") +
+  labs(title = "ct_state_ttl Counts Across Attacks",
+       x = "State/TTL",
+       y = "Count") +
+  theme_minimal()
+
+
+############################################################
+# 5. Hypothesis Test (5.4)
+############################################################
+
+
+dur_top <- data_alt %>%
+  filter(group == top_attack) %>%
+  pull(dur)
+
+dur_other <- data_alt %>%
+  filter(group == "Other") %>%
+  pull(dur)
+
+t_test_result <- t.test(dur_top, dur_other)   
+t_test_result
+
+
+############################################################
+
 
 
 
