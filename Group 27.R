@@ -249,6 +249,7 @@ unsw <- unsw %>%
   )
 
 # 2.2.8 Final Visualization
+par(mar=c(5,4,4,2))  # prevents margin error
 
 boxplot(unsw$dur, main = "Duration (After Cleaning)")
 boxplot(unsw$sbytes, main = "Source Bytes (After Cleaning)")
