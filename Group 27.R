@@ -295,6 +295,7 @@ library(ggplot2)
 library(stringr)
 library(tidyr)
 
+
 #3.1: Data Cleaning for dur and sbytes with attack category
 dur_sbytes_dataset <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE) %>%
   clean_names() %>%
