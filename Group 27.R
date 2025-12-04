@@ -139,6 +139,9 @@ ggplot(bytes_summary_long, aes(x = traffic_type, y = total_value, fill = byte_ty
 #============================================================================================================
 #Hypothesis Testing: Two-sample t-test for Data Analysis 3
 
+cleaned_bytes_dataset <- cleaned_bytes_dataset %>%
+  mutate(traffic_type = ifelse(tolower(attack_cat) == "normal", "Normal", "Attack"))
+
 summary_bytes_test <- cleaned_bytes_dataset %>%
   group_by(traffic_type) %>%
   summarise(
@@ -293,7 +296,7 @@ library(stringr)
 library(tidyr)
 
 #3.1: Data Cleaning for dur and sbytes with attack category
-cleaned_dataset <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE) %>%
+dur_sbytes_dataset <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE) %>%
   clean_names() %>%
   mutate(
     dur        = as.numeric(dur),
@@ -337,7 +340,7 @@ dur_sbytes_dataset <- dur_sbytes_dataset %>%
   )
 
   #3.1.8: Final Visualization
-cleaned_dataset <- cleaned_dataset %>%
+dur_sbytes_datasett <- dur_sbytes_dataset %>%
   mutate(
     dur_group = case_when(
       dur < 1 ~ "Short",
@@ -346,7 +349,7 @@ cleaned_dataset <- cleaned_dataset %>%
     )
   )
 
-summary_sbytes <- cleaned_dataset %>%
+summary_sbytes <- dur_sbytes_dataset %>%
   group_by(dur_group) %>%
   summarise(avg_sbytes = mean(sbytes))
 
