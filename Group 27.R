@@ -318,41 +318,20 @@ byte_summary %>%
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-# long form and plot both in one chart
-byte_long <- byte_summary %>%
-  pivot_longer(cols = c(avg_sbytes, avg_dbytes),
-               names_to = "byte_type",
-               values_to = "avg_bytes") %>%
-  mutate(byte_type = ifelse(byte_type == "avg_sbytes", "source (sbytes)", "dest (dbytes)"))
-
-p_bytes <- ggplot(byte_long, aes(x = attack_cat, y = avg_bytes, fill = byte_type)) +
-  geom_col(position = "dodge") +
-  labs(title = "Average Source vs Destination Bytes by Attack Category",
-       x = "Attack Category",
-       y = "Average Bytes") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-print(p_bytes)
-
 # extra feature 
 unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
 
 # 3. Is there a relationship between connection duration and total data transferred?
 
-byte_summary <- unsw %>%
-  group_by(attack_cat) %>%
-  summarise(avg_sbytes = mean(sbytes, na.rm = TRUE),
-            avg_dbytes = mean(dbytes, na.rm = TRUE))
+unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
 
-print(byte_summary)
+print(cor(unsw$dur, unsw$total_bytes, use = "complete.obs"))
 
-byte_summary %>%
-  pivot_longer(cols = c(avg_sbytes, avg_dbytes), names_to = "type", values_to = "value") %>%
-  ggplot(aes(x = reorder(attack_cat, -value), y = value, fill = type)) +
-  geom_col(position = "dodge") +
-  labs(title = "Source vs Destination Bytes by Attack Category", x = "Attack Category", y = "Average Bytes") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# simple scatter
+ggplot(unsw, aes(x = dur, y = log10(total_bytes + 1), color = attack_cat)) +
+  geom_point(alpha = 0.3, size = 1) +
+  labs(title = "Duration vs log10(Total Bytes + 1)", x = "Duration (s)", y = "log10(Total Bytes + 1)") +
+  theme_minimal()
                      
 #==============================================================================================================
 # WONG ZHENG HAN (TP074212)
