@@ -493,7 +493,7 @@ ggplot(cleaned_dataset, aes(x = dur_group5, y = sbytes)) +
   scale_y_log10() +
   theme_minimal() +
   labs(
-    title = "Average Source Bytes by Connection Duration Group (5 Groups)",
+    title = "Average Source Bytes by Connection Duration Group",
     x = "Connection Duration Group",
     y = "Average Source Bytes (log scale)"
   )
@@ -506,11 +506,11 @@ ggplot(cleaned_dataset, aes(x = dur_group5, y = sbytes)) +
 # H0 (Null): There is no significant difference in mean sbytes between Normal and Attack traffic.
 # H1 (Alternative): There is a significant difference in mean sbytes between Normal and Attack traffic.
 
-normal_data <- dur_sbytes_dataset %>%
+normal_data <- cleaned_dataset %>%
   filter(attack_cat == "normal") %>%
   pull(sbytes)
 
-attack_data <- dur_sbytes_dataset %>%
+attack_data <- cleaned_dataset %>%
   filter(attack_cat != "normal") %>%
   pull(sbytes)
 
