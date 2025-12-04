@@ -293,15 +293,15 @@ library(stringr)
 library(tidyr)
 
 #3.1: Data Cleaning for dur and sbytes with attack category
-dur_sbytes_dataset <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE) %>%
+cleaned_dataset <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE) %>%
   clean_names() %>%
   mutate(
-    dur       = as.numeric(dur),
-    sbytes    = as.numeric(sbytes),
+    dur        = as.numeric(dur),
+    sbytes     = as.numeric(sbytes),
     attack_cat = str_to_lower(attack_cat),
     attack_cat = as.factor(attack_cat)
   ) %>%
-
+  
   #3.1.1 Handling missing values
   drop_na(dur, sbytes, attack_cat) %>%
 
