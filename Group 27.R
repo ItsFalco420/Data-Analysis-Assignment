@@ -249,11 +249,26 @@ unsw <- unsw %>%
   )
 
 # 2.2.8 Final Visualization
-par(mar=c(5,4,4,2))  # prevents margin error
+# 2.2.8 Final Visualization (using ggplot — no margin errors)
 
-boxplot(unsw$dur, main = "Duration (After Cleaning)")
-boxplot(unsw$sbytes, main = "Source Bytes (After Cleaning)")
-boxplot(unsw$dbytes, main = "Destination Bytes (After Cleaning)")
+# Boxplot for Duration
+ggplot(unsw, aes(x = "", y = dur)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(title = "Duration (After Cleaning)", y = "Duration", x = "") +
+  theme_minimal()
+
+# Boxplot for Source Bytes
+ggplot(unsw, aes(x = "", y = sbytes)) +
+  geom_boxplot(fill = "lightgreen") +
+  labs(title = "Source Bytes (After Cleaning)", y = "sbytes", x = "") +
+  theme_minimal()
+
+# Boxplot for Destination Bytes
+ggplot(unsw, aes(x = "", y = dbytes)) +
+  geom_boxplot(fill = "lightpink") +
+  labs(title = "Destination Bytes (After Cleaning)", y = "dbytes", x = "") +
+  theme_minimal()
+
 
 # cleaned dataset
 
