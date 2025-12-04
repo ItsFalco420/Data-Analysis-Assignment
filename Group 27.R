@@ -959,7 +959,52 @@ t_test_result
 
 
 
-
 #==============================================================================================================
 #Complex Hypothesis (Conclusion)
 
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(scales)
+
+#Data Preparation
+#Selecting columns for analysis from  datasets
+combined_data <- bind_rows (
+  cleaned_bytes_dataset %>% select(attack_cat, sbytes, dbytes),
+  cleaned_dataset %>% select(attack_cat, dur, sbytes),
+  data %>% select(attack_cat, dur, sbytes, dbytes, spkts, dpkts),
+  data_alt %>% select(attack_cat, dur, sbytes, dbytes, spkts, dpkts)
+) %>%
+  distinct() %>%
+  mutate(
+    traffic_type = ifelse(tolower(attack_cat) == "normal", "Normal", "Attack"),
+    dur        = ifelse(is.na(dur), 0, dur),
+    spkts      = ifelse(is.na(spkts), 0, spkts),
+    dpkts      = ifelse(is.na(dpkts), 0, dpkts),
+    sbytes     = ifelse(is.na(sbytes), 0, sbytes),
+    dbytes     = ifelse(is.na(dbytes), 0, dbytes)
+  )
+
+#Derived metrics
+combined_data <- combined_data %>%
+  mutate(
+    total_bytes = sbytes + dbytes,
+    total_packets = spkts + dpkts,
+    forward_packet_rate  = ifelse(dur > 0, spkts / dur, 0),
+    backward_packet_rate = ifelse(dur > 0, dpkts / dur, 0)
+  )
+
+#Density Plot
+ggplot(combined_data, aes(x = sbytes + 1, fill = traffic_type)) +
+  geom_density(alpha = 0.5) +
+  scale_x_log10() +
+  theme_minimal() +
+  labs(title = "Density of Source Bytes by Traffic Type", x = "sbytes (log scale)", y = "Density")
+
+ggplot(combined_data, aes(x = dbytes + 1, fill = traffic_type)) +
+  geom_density(alpha = 0.5) +
+  scale_x_log10() +
+  theme_minimal() +
+  labs(title = "Density of Destination Bytes by Traffic Type", x = "dbytes (log scale)", y = "Density")
+
+#Hypothesis Testing
