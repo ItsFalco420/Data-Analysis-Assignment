@@ -487,12 +487,12 @@ ggplot(dur_sbytes_dataset, aes(x = dur, y = sbytes)) +
 # H0 (Null): There is no significant difference in mean sbytes between Normal and Attack traffic.
 # H1 (Alternative): There is a significant difference in mean sbytes between Normal and Attack traffic.
 
-normal_data <- cleaned_dur_sbytes_dataset %>%
-  filter(attack_cat == "Normal") %>%
+normal_data <- dur_sbytes_dataset %>%
+  filter(attack_cat == "normal") %>%
   pull(sbytes)
 
-attack_data <- cleaned_dur_sbytes_dataset %>%
-  filter(attack_cat != "Normal") %>%
+attack_data <- dur_sbytes_dataset %>%
+  filter(attack_cat != "normal") %>%
   pull(sbytes)
 
 t.test(normal_data, attack_data, alternative = "two.sided")
