@@ -295,9 +295,8 @@ library(ggplot2)
 library(stringr)
 library(tidyr)
 
-
-#3.1: Data Cleaning for dur and sbytes with attack category
-dur_sbytes_dataset <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE) %>%
+# 3.1: Data Cleaning for dur and sbytes with attack category
+cleaned_dataset <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE) %>%
   clean_names() %>%
   mutate(
     dur        = as.numeric(dur),
@@ -306,77 +305,90 @@ dur_sbytes_dataset <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE) %>%
     attack_cat = as.factor(attack_cat)
   ) %>%
   
-  #3.1.1 Handling missing values
+  # 3.1.1 Handling missing values
   drop_na(dur, sbytes, attack_cat) %>%
-
+  
   # Keep only what is needed for this objective
   select(dur, sbytes, attack_cat)
 
-#3.1.2: Handling Outliers (cap extreme 1% tails)
-dur_sbytes_dataset <- dur_sbytes_dataset %>%
+# 3.1.2: Handling Outliers (cap extreme 1% tails)
+cleaned_dataset <- cleaned_dataset %>%
   filter(
     dur    >= 0 & dur    <= quantile(dur, 0.99),
     sbytes >= 0 & sbytes <= quantile(sbytes, 0.99)
   )
 
-#3.1.3: Duplicates Checking
-dur_sbytes_dataset <- dur_sbytes_dataset %>%
+# 3.1.3: Duplicates Checking
+cleaned_dataset <- cleaned_dataset %>%
   distinct()
 
-#3.1.4: Data Type Checking
-str(dur_sbytes_dataset)
+# 3.1.4: Data Type Checking
+str(cleaned_dataset)
 
-#3.1.5: Handle Inconsistent Categorical Entries
-levels(dur_sbytes_dataset$attack_cat)
+# 3.1.5: Handle Inconsistent Categorical Entries
+levels(cleaned_dataset$attack_cat)
 
-#3.1.6: Check for Non-positive Values
-dur_sbytes_dataset <- dur_sbytes_dataset %>%
+# 3.1.6: Check for Non-positive Values
+cleaned_dataset <- cleaned_dataset %>%
   filter(dur > 0, sbytes > 0)
 
-#3.1.7: Normalize or Scale Data (for modelling if needed)
-dur_sbytes_dataset <- dur_sbytes_dataset %>%
+# 3.1.7: Normalize or Scale Data
+cleaned_dataset <- cleaned_dataset %>%
   mutate(
     dur_scaled    = as.numeric(scale(dur)),
     sbytes_scaled = as.numeric(scale(sbytes))
   )
 
-  #3.1.8: Final Visualization
-dur_sbytes_datasett <- dur_sbytes_dataset %>%
+# 3.1.8: Final Visualization
+cleaned_dataset <- cleaned_dataset %>%
   mutate(
     dur_group = case_when(
-      dur < 1 ~ "Short",
+      dur < 1  ~ "Short",
       dur < 10 ~ "Medium",
-      TRUE ~ "Long"
+      TRUE     ~ "Long"
     )
   )
 
 summary_sbytes <- dur_sbytes_dataset %>%
   group_by(dur_group) %>%
-  summarise(avg_sbytes = mean(sbytes))
+  summarise(avg_sbytes = mean(sbytes), .groups = "drop")
 
 ggplot(summary_sbytes, aes(x = dur_group, y = avg_sbytes)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  labs(title = "Average Source Bytes by Connection Duration",
-       x = "Duration Group",
-       y = "Average sbytes")
+  labs(
+    title = "Average Source Bytes by Connection Duration (3 Groups)",
+    x = "Duration Group",
+    y = "Average sbytes"
+  )
 
-#===============================================================
-#Objective 4: To Investigate how connection duration relates to 
-#             the amount of data sent by the source device.
-#===============================================================
+# Summary stats for dur and sbytes
+summary(cleaned_dataset[, c("dur", "sbytes")])
 
-# Analysis 4-1:
+attack_sbytes <- cleaned_dataset %>%
+  group_by(attack_cat) %>%
+  summarise(avg_sbytes = mean(sbytes), .groups = "drop")
+
+ggplot(attack_sbytes, aes(x = attack_cat, y = avg_sbytes)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(
+    title = "Average sbytes by Attack Category",
+    x = "Attack Category",
+    y = "Average sbytes"
+  )
+
+# ---------- Analysis 4-1 ----------
 # Do longer connections generally transmit more source bytes?
 
 # Correlation (overall)
-cor_test_result <- cor.test(dur_sbytes_dataset$dur, dur_sbytes_dataset$sbytes)
+cor_test_result <- cor.test(cleaned_dataset$dur, cleaned_dataset$sbytes)
 cor_test_result
 
-# Scatterplot with trendline (log scale helps because sbytes is very skewed)
-dur_sbytes_dataset <- dur_sbytes_dataset %>%
+# Create duration group for deeper analysis (new column)
+cleaned_dataset <- cleaned_dataset %>%
   mutate(
-    dur_group = cut(
+    dur_group5 = cut(
       dur,
       breaks = c(0, 0.01, 0.1, 1, 10, Inf),
       labels = c("Very Short", "Short", "Medium", "Long", "Very Long")
@@ -384,14 +396,15 @@ dur_sbytes_dataset <- dur_sbytes_dataset %>%
   )
 
 # Summarise average sbytes for each duration group
-dur_sbytes_summary <- dur_sbytes_dataset %>%
-  group_by(dur_group) %>%
+dur_sbytes_summary <- cleaned_dataset %>%
+  group_by(dur_group5) %>%
   summarise(
-    avg_sbytes = mean(sbytes, na.rm = TRUE)
+    avg_sbytes = mean(sbytes, na.rm = TRUE),
+    .groups = "drop"
   )
 
 # Bar chart with correct sbytes values
-ggplot(dur_sbytes_summary, aes(x = dur_group, y = avg_sbytes)) +
+ggplot(dur_sbytes_summary, aes(x = dur_group5, y = avg_sbytes)) +
   geom_bar(stat = "identity", alpha = 0.9) +
   theme_minimal(base_size = 14) +
   labs(
@@ -400,11 +413,11 @@ ggplot(dur_sbytes_summary, aes(x = dur_group, y = avg_sbytes)) +
     y = "Average Source Bytes"
   )
 
-# Analysis 4-2:
+# ---------- Analysis 4-2 ----------
 # Are there specific attack categories where long connections transmit unusually high or low amounts of data?
 
 # Summary statistics by attack category
-attack_summary <- dur_sbytes_dataset %>%
+attack_summary <- cleaned_dataset %>%
   group_by(attack_cat) %>%
   summarise(
     n              = n(),
@@ -417,8 +430,8 @@ attack_summary <- dur_sbytes_dataset %>%
 
 attack_summary
 
-# Boxplot of dur by attack category
-ggplot(dur_sbytes_dataset, aes(x = attack_cat, y = dur)) +
+# Boxplot of sbytes by attack category
+ggplot(cleaned_dataset, aes(x = attack_cat, y = dur)) +
   stat_summary(fun = mean, geom = "bar", alpha = 0.8) +
   scale_y_log10() +
   theme_minimal(base_size = 12) +
@@ -429,33 +442,35 @@ ggplot(dur_sbytes_dataset, aes(x = attack_cat, y = dur)) +
   )
 
 # Boxplot of dur by attack category
-ggplot(dur_sbytes_dataset, aes(x = attack_cat, y = dur)) +
-  geom_boxplot(outlier.alpha = 0.3) +
+ggplot(cleaned_dataset, aes(x = attack_cat, y = dur)) +
+  stat_summary(fun = mean, geom = "bar", alpha = 0.8) +
   scale_y_log10() +
   theme_minimal() +
   labs(
-    title = "Connection Duration by Attack Category",
+    title = "Mean Connection Duration by Attack Category",
     x = "Attack Category",
-    y = "Duration (log10 scale)"
+    y = "Mean Duration (log10 scale)"
   )
 
-# Analysis 4-3:
+# ---------- Analysis 4-3 ----------
 # Do short-duration connections ever send disproportionately large amounts of data?
 
 # Define thresholds for "short" duration and "high" sbytes (using quartiles)
-dur_short_threshold   <- quantile(dur_sbytes_dataset$dur, 0.25)
-sbytes_high_threshold <- quantile(dur_sbytes_dataset$sbytes, 0.75)
+dur_short_threshold   <- quantile(cleaned_dataset$dur, 0.25)
+sbytes_high_threshold <- quantile(cleaned_dataset$sbytes, 0.75)
 
-short_high_burst <- dur_sbytes_dataset %>%
-  filter(dur <= dur_short_threshold,
-         sbytes >= sbytes_high_threshold)
+short_high_burst <- cleaned_dataset %>%
+  filter(
+    dur    <= dur_short_threshold,
+    sbytes >= sbytes_high_threshold
+  )
 
 # Inspect how many such cases there are by attack_cat
 burst_summary <- short_high_burst %>%
   group_by(attack_cat) %>%
   summarise(
-    n_cases = n(),
-    mean_dur = mean(dur),
+    n_cases   = n(),
+    mean_dur  = mean(dur),
     mean_sbytes = mean(sbytes),
     .groups = "drop"
   )
@@ -463,20 +478,24 @@ burst_summary <- short_high_burst %>%
 burst_summary
 
 # Visualise these "burst" connections on the same scatterplot
-ggplot(dur_sbytes_dataset, aes(x = dur, y = sbytes)) +
-  geom_point(alpha = 0.15) +
-  geom_point(
-    data = short_high_burst,
-    aes(x = dur, y = sbytes, color = attack_cat),
-    alpha = 0.8
-  ) +
-  scale_x_log10() +
+cleaned_dataset <- cleaned_dataset %>%
+  mutate(
+    dur_group = cut(
+      dur,
+      breaks = c(0, 0.01, 0.1, 1, 10, max(dur)),
+      labels = c("Very Short", "Short", "Medium", "Long", "Very Long")
+    )
+  )
+
+# Bar chart: Average sbytes by duration group (log scale)
+ggplot(cleaned_dataset, aes(x = dur_group5, y = sbytes)) +
+  stat_summary(fun = mean, geom = "bar") +
   scale_y_log10() +
   theme_minimal() +
   labs(
-    title = "Short-Duration, High-Source-Bytes Connections Highlighted",
-    x = "Connection Duration (log10 scale)",
-    y = "Source Bytes (log10 scale)"
+    title = "Average Source Bytes by Connection Duration Group (5 Groups)",
+    x = "Connection Duration Group",
+    y = "Average Source Bytes (log scale)"
   )
 
 # ============================================
