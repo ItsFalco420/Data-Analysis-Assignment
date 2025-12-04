@@ -499,6 +499,170 @@ t.test(normal_data, attack_data, alternative = "two.sided")
 #QUAN JIA YONG
 
 
+
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(tidyr)
+library(scales)
+library(gridExtra)
+
+
+file_path <- "C:/Users/User/OneDrive/Documents/GitHub/Data-Analysis-Assignment/5. UNSW_NB15.csv"
+data_raw <- read_csv(file_path, show_col_types = FALSE)
+
+cat("Loaded dataset from:", file_path, "\n")
+cat("Rows:", nrow(data_raw), "Columns:", ncol(data_raw), "\n")
+print(head(data_raw, 5))
+
+
+data <- data_raw 
+
+# 6.2.1: Missing values
+num_cols <- names(data)[sapply(data, is.numeric)]
+char_cols <- names(data)[sapply(data, is.character)]
+
+for (col in num_cols) {
+  data[[col]][is.na(data[[col]])] <- median(data[[col]], na.rm = TRUE)
+}
+
+for (col in char_cols) {
+  data[[col]][is.na(data[[col]])] <- "unknown"
+}
+
+# 6.2.2: Outlier capping (IQR)
+numeric_interest <- c("spkts", "dpkts", "sbytes", "dbytes", "dur")
+numeric_interest <- numeric_interest[numeric_interest %in% names(data)]
+
+cap_outliers <- function(x) {
+  q1 <- quantile(x, 0.25, na.rm = TRUE)
+  q3 <- quantile(x, 0.75, na.rm = TRUE)
+  iqr <- q3 - q1
+  lower <- q1 - 1.5 * iqr
+  upper <- q3 + 1.5 * iqr
+  pmin(pmax(x, lower), upper)
+}
+
+for (col in numeric_interest) {
+  newcol <- paste0(col, "_capped")
+  data[[newcol]] <- cap_outliers(data[[col]])
+}
+
+# 6.2.3: Remove duplicates
+if ("id" %in% names(data)) {
+  data <- data[!duplicated(data$id), ]
+} else {
+  data <- data[!duplicated(data), ]
+}
+
+# 6.2.4: Convert factors
+factor_cols <- c("proto", "service", "state", "attack_cat")
+factor_cols <- factor_cols[factor_cols %in% names(data)]
+
+for (col in factor_cols) {
+  data[[col]] <- as.factor(as.character(data[[col]]))
+}
+
+# 6.2.5: Normalize categorical entries
+for (col in names(data)) {
+  if (is.character(data[[col]])) {
+    data[[col]] <- trimws(tolower(data[[col]]))
+  }
+}
+
+if ("attack_cat" %in% names(data)) {
+  data$attack_cat <- as.factor(tolower(as.character(data$attack_cat)))
+}
+
+# 6.2.6: Replace zero durations
+if ("dur" %in% names(data)) {
+  data$dur[data$dur == 0] <- 1e-6
+}
+
+# 6.2.7: Create derived features and scale
+data <- data %>%
+  mutate(
+    total_packets = spkts + dpkts,
+    total_bytes   = sbytes + dbytes,
+    forward_packet_rate  = spkts / dur,
+    backward_packet_rate = dpkts / dur
+  )
+
+scale_vars <- c(
+  "spkts", "dpkts", "sbytes", "dbytes",
+  "total_packets", "total_bytes", "forward_packet_rate"
+)
+scale_vars <- scale_vars[scale_vars %in% names(data)]
+data[scale_vars] <- scale(data[scale_vars])
+
+
+
+# Create attack indicator for hypothesis testing
+if ("attack_cat" %in% names(data)) {
+  data <- data %>% mutate(is_attack = ifelse(attack_cat == "normal", 0, 1))
+} else if ("label" %in% names(data)) {
+  data <- data %>% mutate(is_attack = ifelse(label == 0, 0, 1))
+}
+
+
+
+
+#  Analysis 1: Network Flow Trends 
+if ("attack_cat" %in% names(data)) {
+  
+  # Mean total_packets by attack category
+  trend_df <- data %>%
+    group_by(attack_cat) %>%
+    summarise(mean_total_packets = mean(total_packets, na.rm = TRUE))
+  
+  ggplot(trend_df, aes(x = attack_cat, y = mean_total_packets, fill = attack_cat)) +
+    geom_bar(stat = "identity") +
+    labs(title = "Mean Total Packets by Attack Category (Analysis 1)",
+         x = "Attack Category", y = "Mean Total Packets") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    guides(fill = "none")
+  
+  # Mean forward_packet_rate by attack category
+  trend_rate_df <- data %>%
+    group_by(attack_cat) %>%
+    summarise(mean_forward_rate = mean(forward_packet_rate, na.rm = TRUE))
+  
+  ggplot(trend_rate_df, aes(x = attack_cat, y = mean_forward_rate, fill = attack_cat)) +
+    geom_bar(stat = "identity") +
+    labs(title = "Mean Forward Packet Rate by Attack Category (Analysis 1)",
+         x = "Attack Category", y = "Mean Forward Packet Rate") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    guides(fill = "none")
+}
+
+#  Analysis 2: Statistical Differences / Hypothesis Testing 
+data$attack_flag <- ifelse(data$is_attack == 1, "Attack", "Normal")
+hypo_df <- data %>%
+  group_by(attack_flag) %>%
+  summarise(mean_total_packets = mean(total_packets, na.rm = TRUE))
+
+ggplot(hypo_df, aes(x = attack_flag, y = mean_total_packets, fill = attack_flag)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Mean Total Packets: Attack vs Normal (Analysis 2)",
+       x = "Flow Type", y = "Mean Total Packets") +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +
+  guides(fill = "none")
+
+
+
+
+wilcox_res <- wilcox.test(total_packets ~ is_attack, data = data)
+t_res <- t.test(total_packets ~ is_attack, data = data)
+
+cat("\nWilcoxon test (attack vs normal):\n")
+print(wilcox_res)
+
+cat("\nT-test (attack vs normal):\n")
+print(t_res)
+
+
+
+
 #==============================================================================================================
 #ALTAYEB ABDELGADIR MOHAMED
 
