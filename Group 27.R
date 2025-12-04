@@ -265,6 +265,16 @@ avg_duration <- unsw %>%
     median_duration = median(dur, na.rm = TRUE),
     count = n()
   )
+print(avg_duration)
+
+# bar plot
+ggplot(avg_duration, aes(x = reorder(attack_cat, -mean_duration), y = mean_duration, fill = attack_cat)) +
+  geom_col() +
+  labs(title = "Average Connection Duration by Attack Category",
+       x = "Attack Category",
+       y = "Mean Duration (seconds)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # 2. How do source and destination byte counts differ among attack types?
 byte_summary <- unsw %>%
@@ -273,6 +283,21 @@ byte_summary <- unsw %>%
     avg_sbytes = mean(sbytes, na.rm = TRUE),
     avg_dbytes = mean(dbytes, na.rm = TRUE)
   )
+print(byte_summary)
+
+
+byte_long <- byte_summary %>%
+  pivot_longer(cols = c(avg_sbytes, avg_dbytes),
+               names_to = "byte_type",
+               values_to = "value")
+
+ggplot(byte_long, aes(x = attack_cat, y = value, fill = byte_type)) +
+  geom_col(position = "dodge") +
+  labs(title = "Source vs Destination Bytes by Attack Category",
+       x = "Attack Category",
+       y = "Average Bytes") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # extra feature 
 unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
@@ -280,10 +305,15 @@ unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
 # 3. Is there a relationship between connection duration and total data transferred?
 
 cor(unsw$dur, unsw$total_bytes, use = "complete.obs")
+# Scatter plot
+ggplot(unsw, aes(x = dur, y = total_bytes)) +
+  geom_point(alpha = 0.3, color = "blue") +
+  labs(title = "Relationship Between Duration and Total Bytes",
+       x = "Duration (seconds)",
+       y = "Total Bytes") +
+  theme_minimal()
 
-
-
-                     
+    
                      
 #==============================================================================================================
 # WONG ZHENG HAN (TP074212)
