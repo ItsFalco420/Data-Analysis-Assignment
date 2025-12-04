@@ -177,30 +177,33 @@ library(tidyr)
 
 
 # Import dataset 
-unsw <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE)
+unsw <- read_csv("/mnt/data/5. UNSW_NB15.csv", show_col_types = FALSE)
 
-unsw <- unsw %>% 
-  select(dur, sbytes, dbytes, attack_cat)
+# Keep only the columns needed for Objective 3
+unsw <- unsw %>% select(dur, sbytes, dbytes, attack_cat)
 
-# Quick check
+# Quick peek
 glimpse(unsw)
 
 
 # 2.2.1 Checking & Handling Missing Values
 
-colSums(is.na(unsw))   
-unsw <- unsw %>% drop_na()
+print("Missing values per column:")
+print(colSums(is.na(unsw)))
 
+unsw <- unsw %>% drop_na()
+print(paste("Rows after removing NA:", nrow(unsw)))
 # 2.2.2 Checking & Handling Outliers (Simple IQR method)
 
 numeric_cols <- c("dur", "sbytes", "dbytes")
 
 cap_iqr <- function(x){
-  Q1 <- quantile(x, 0.25)
-  Q3 <- quantile(x, 0.75)
+  if (!is.numeric(x)) return(x)
+  Q1 <- quantile(x, 0.25, na.rm = TRUE)
+  Q3 <- quantile(x, 0.75, na.rm = TRUE)
   IQRv <- Q3 - Q1
-  lower <- Q1 - 1.5*IQRv
-  upper <- Q3 + 1.5*IQRv
+  lower <- Q1 - 1.5 * IQRv
+  upper <- Q3 + 1.5 * IQRv
   x[x < lower] <- lower
   x[x > upper] <- upper
   return(x)
@@ -212,67 +215,72 @@ unsw <- unsw %>%
 
 # 2.2.3 Checking for Duplicates
 
-sum(duplicated(unsw))        # Check duplicates
-unsw <- unsw %>% distinct()  # Remove duplicates
+dup_count <- sum(duplicated(unsw))
+print(paste("Duplicate rows found:", dup_count))
+unsw <- unsw %>% distinct()
+print(paste("Rows after removing duplicates:", nrow(unsw)))
 
 
 # 2.2.4 Data Type Checking
 
 str(unsw) 
 
+# attack category a factor for plotting
+unsw$attack_cat <- as.character(unsw$attack_cat)
+unsw$attack_cat <- tolower(trimws(unsw$attack_cat))
 unsw$attack_cat <- as.factor(unsw$attack_cat)
 
 
 # 2.2.5 Handle Inconsistent Categorical Entries
 
-unsw$attack_cat <- tolower(unsw$attack_cat)
-unsw$attack_cat <- trimws(unsw$attack_cat)
+print("Attack category levels:")
+print(levels(unsw$attack_cat))
 
 
 # 2.2.6 Check for Negative or Zero Values
 
-summary(unsw[, numeric_cols])
-
+print("Summary of numeric columns (after cleaning):")
+print(summary(unsw[, numeric_cols]))
 
 unsw <- unsw %>%
-  mutate(across(all_of(numeric_cols),
-                ~ ifelse(.x < 0, 0, .x)))
+  mutate(across(all_of(numeric_cols), ~ ifelse(.x < 0, 0, .x)))
 
 
 # 2.2.7 Normalize / Scale Data 
 
 unsw <- unsw %>%
   mutate(
-    dur_scaled = (dur - min(dur))/(max(dur)-min(dur)),
-    sbytes_scaled = (sbytes - min(sbytes))/(max(sbytes)-min(sbytes)),
-    dbytes_scaled = (dbytes - min(dbytes))/(max(dbytes)-min(dbytes))
+    dur_scaled = (dur - min(dur, na.rm = TRUE)) / (max(dur, na.rm = TRUE) - min(dur, na.rm = TRUE)),
+    sbytes_scaled = (sbytes - min(sbytes, na.rm = TRUE)) / (max(sbytes, na.rm = TRUE) - min(sbytes, na.rm = TRUE)),
+    dbytes_scaled = (dbytes - min(dbytes, na.rm = TRUE)) / (max(dbytes, na.rm = TRUE) - min(dbytes, na.rm = TRUE))
   )
 
-# 2.2.8 Final Visualization
-# 2.2.8 Final Visualization (using ggplot — no margin errors)
 
-# Boxplot for Duration
+# 2.2.8 Final Visualization
+
 ggplot(unsw, aes(x = "", y = dur)) +
-  geom_boxplot(fill = "skyblue") +
-  labs(title = "Duration (After Cleaning)", y = "Duration", x = "") +
+  geom_boxplot() +
+  labs(title = "Duration (After Cleaning)", y = "dur", x = "") +
   theme_minimal()
 
-# Boxplot for Source Bytes
 ggplot(unsw, aes(x = "", y = sbytes)) +
-  geom_boxplot(fill = "lightgreen") +
+  geom_boxplot() +
   labs(title = "Source Bytes (After Cleaning)", y = "sbytes", x = "") +
   theme_minimal()
 
-# Boxplot for Destination Bytes
 ggplot(unsw, aes(x = "", y = dbytes)) +
-  geom_boxplot(fill = "lightpink") +
+  geom_boxplot() +
   labs(title = "Destination Bytes (After Cleaning)", y = "dbytes", x = "") +
   theme_minimal()
 
+# Save cleaned small CSV for objective (optional)
+write_csv(unsw, "UNSW_cleaned_selected_columns.csv")
+message("Saved cleaned selected columns to UNSW_cleaned_selected_columns.csv")
 
 # cleaned dataset
 
 write_csv(unsw, "UNSW_cleaned_selected_columns.csv")
+message("Saved cleaned selected columns to UNSW_cleaned_selected_columns.csv")
                      
 #==============================================================================================================
 # 1. What is the average connection duration for each attack category?
@@ -282,17 +290,21 @@ avg_duration <- unsw %>%
     mean_duration = mean(dur, na.rm = TRUE),
     median_duration = median(dur, na.rm = TRUE),
     count = n()
-  )
+  ) %>%
+  arrange(desc(mean_duration))
+
+print("Average / median duration by attack category:")
 print(avg_duration)
 
-# bar plot
-ggplot(avg_duration, aes(x = reorder(attack_cat, -mean_duration), y = mean_duration, fill = attack_cat)) +
-  geom_col() +
+# Plot: bar chart 
+p_avg_dur <- ggplot(avg_duration, aes(x = reorder(attack_cat, -mean_duration), y = mean_duration, fill = attack_cat)) +
+  geom_col(show.legend = FALSE) +
   labs(title = "Average Connection Duration by Attack Category",
        x = "Attack Category",
        y = "Mean Duration (seconds)") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+print(p_avg_dur)
 
 # 2. How do source and destination byte counts differ among attack types?
 byte_summary <- unsw %>%
@@ -300,37 +312,49 @@ byte_summary <- unsw %>%
   summarise(
     avg_sbytes = mean(sbytes, na.rm = TRUE),
     avg_dbytes = mean(dbytes, na.rm = TRUE)
-  )
+  ) %>%
+  arrange(desc(avg_sbytes))
+
+print("Average sbytes and dbytes by attack category:")
 print(byte_summary)
 
-
+# long form and plot both in one chart
 byte_long <- byte_summary %>%
   pivot_longer(cols = c(avg_sbytes, avg_dbytes),
                names_to = "byte_type",
-               values_to = "value")
+               values_to = "avg_bytes") %>%
+  mutate(byte_type = ifelse(byte_type == "avg_sbytes", "source (sbytes)", "dest (dbytes)"))
 
-ggplot(byte_long, aes(x = attack_cat, y = value, fill = byte_type)) +
+p_bytes <- ggplot(byte_long, aes(x = attack_cat, y = avg_bytes, fill = byte_type)) +
   geom_col(position = "dodge") +
-  labs(title = "Source vs Destination Bytes by Attack Category",
+  labs(title = "Average Source vs Destination Bytes by Attack Category",
        x = "Attack Category",
        y = "Average Bytes") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+print(p_bytes)
 
 # extra feature 
 unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
 
 # 3. Is there a relationship between connection duration and total data transferred?
 
-cor(unsw$dur, unsw$total_bytes, use = "complete.obs")
-# Scatter plot
-ggplot(unsw, aes(x = dur, y = total_bytes)) +
-  geom_point(alpha = 0.3, color = "blue") +
-  labs(title = "Relationship Between Duration and Total Bytes",
-       x = "Duration (seconds)",
-       y = "Total Bytes") +
-  theme_minimal()
+corr_val <- cor(unsw$dur, unsw$total_bytes, use = "complete.obs")
+print(paste("Correlation (dur vs total_bytes):", round(corr_val, 4)))
 
+# Scatter plot (raw)
+p_scatter_raw <- ggplot(unsw, aes(x = dur, y = total_bytes, color = attack_cat)) +
+  geom_point(alpha = 0.25, size = 1) +
+  labs(title = "Duration vs Total Bytes (raw)", x = "Duration (s)", y = "Total Bytes") +
+  theme_minimal()
+print(p_scatter_raw)
+
+# Scatter plot (log bytes) 
+p_scatter_log <- ggplot(unsw, aes(x = dur, y = log10(total_bytes + 1), color = attack_cat)) +
+  geom_point(alpha = 0.25, size = 1) +
+  labs(title = "Duration vs log10(Total Bytes + 1)", x = "Duration (s)", y = "log10(Total Bytes + 1)") +
+  theme_minimal()
+print(p_scatter_log)
     
                      
 #==============================================================================================================
