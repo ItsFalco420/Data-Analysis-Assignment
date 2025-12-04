@@ -177,7 +177,10 @@ library(tidyr)
 
 
 # Import dataset 
-unsw <- read_csv("/mnt/data/5. UNSW_NB15.csv", show_col_types = FALSE)
+unsw <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE) %>%
+  select(dur, sbytes, dbytes, attack_cat)   
+
+glimpse(unsw)
 
 # Keep only the columns needed for Objective 3
 unsw <- unsw %>% select(dur, sbytes, dbytes, attack_cat)
@@ -286,37 +289,34 @@ message("Saved cleaned selected columns to UNSW_cleaned_selected_columns.csv")
 # 1. What is the average connection duration for each attack category?
 avg_duration <- unsw %>%
   group_by(attack_cat) %>%
-  summarise(
-    mean_duration = mean(dur, na.rm = TRUE),
-    median_duration = median(dur, na.rm = TRUE),
-    count = n()
-  ) %>%
+  summarise(mean_duration = mean(dur, na.rm = TRUE),
+            median_duration = median(dur, na.rm = TRUE),
+            n = n()) %>%
   arrange(desc(mean_duration))
 
-print("Average / median duration by attack category:")
 print(avg_duration)
 
-# Plot: bar chart 
-p_avg_dur <- ggplot(avg_duration, aes(x = reorder(attack_cat, -mean_duration), y = mean_duration, fill = attack_cat)) +
+ggplot(avg_duration, aes(x = reorder(attack_cat, -mean_duration), y = mean_duration, fill = attack_cat)) +
   geom_col(show.legend = FALSE) +
-  labs(title = "Average Connection Duration by Attack Category",
-       x = "Attack Category",
-       y = "Mean Duration (seconds)") +
+  labs(title = "Average Connection Duration by Attack Category", x = "Attack Category", y = "Mean Duration (s)") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-print(p_avg_dur)
 
 # 2. How do source and destination byte counts differ among attack types?
 byte_summary <- unsw %>%
   group_by(attack_cat) %>%
-  summarise(
-    avg_sbytes = mean(sbytes, na.rm = TRUE),
-    avg_dbytes = mean(dbytes, na.rm = TRUE)
-  ) %>%
-  arrange(desc(avg_sbytes))
+  summarise(avg_sbytes = mean(sbytes, na.rm = TRUE),
+            avg_dbytes = mean(dbytes, na.rm = TRUE))
 
-print("Average sbytes and dbytes by attack category:")
 print(byte_summary)
+
+byte_summary %>%
+  pivot_longer(cols = c(avg_sbytes, avg_dbytes), names_to = "type", values_to = "value") %>%
+  ggplot(aes(x = reorder(attack_cat, -value), y = value, fill = type)) +
+  geom_col(position = "dodge") +
+  labs(title = "Source vs Destination Bytes by Attack Category", x = "Attack Category", y = "Average Bytes") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # long form and plot both in one chart
 byte_long <- byte_summary %>%
@@ -339,23 +339,20 @@ unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
 
 # 3. Is there a relationship between connection duration and total data transferred?
 
-corr_val <- cor(unsw$dur, unsw$total_bytes, use = "complete.obs")
-print(paste("Correlation (dur vs total_bytes):", round(corr_val, 4)))
+byte_summary <- unsw %>%
+  group_by(attack_cat) %>%
+  summarise(avg_sbytes = mean(sbytes, na.rm = TRUE),
+            avg_dbytes = mean(dbytes, na.rm = TRUE))
 
-# Scatter plot (raw)
-p_scatter_raw <- ggplot(unsw, aes(x = dur, y = total_bytes, color = attack_cat)) +
-  geom_point(alpha = 0.25, size = 1) +
-  labs(title = "Duration vs Total Bytes (raw)", x = "Duration (s)", y = "Total Bytes") +
-  theme_minimal()
-print(p_scatter_raw)
+print(byte_summary)
 
-# Scatter plot (log bytes) 
-p_scatter_log <- ggplot(unsw, aes(x = dur, y = log10(total_bytes + 1), color = attack_cat)) +
-  geom_point(alpha = 0.25, size = 1) +
-  labs(title = "Duration vs log10(Total Bytes + 1)", x = "Duration (s)", y = "log10(Total Bytes + 1)") +
-  theme_minimal()
-print(p_scatter_log)
-    
+byte_summary %>%
+  pivot_longer(cols = c(avg_sbytes, avg_dbytes), names_to = "type", values_to = "value") %>%
+  ggplot(aes(x = reorder(attack_cat, -value), y = value, fill = type)) +
+  geom_col(position = "dodge") +
+  labs(title = "Source vs Destination Bytes by Attack Category", x = "Attack Category", y = "Average Bytes") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
                      
 #==============================================================================================================
 # WONG ZHENG HAN (TP074212)
