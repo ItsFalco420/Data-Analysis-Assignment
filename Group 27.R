@@ -139,6 +139,9 @@ ggplot(bytes_summary_long, aes(x = traffic_type, y = total_value, fill = byte_ty
 #============================================================================================================
 #Hypothesis Testing: Two-sample t-test for Data Analysis 3
 
+cleaned_bytes_dataset <- cleaned_bytes_dataset %>%
+  mutate(traffic_type = ifelse(tolower(attack_cat) == "normal", "Normal", "Attack"))
+
 summary_bytes_test <- cleaned_bytes_dataset %>%
   group_by(traffic_type) %>%
   summarise(
@@ -346,7 +349,7 @@ cleaned_dataset <- cleaned_dataset %>%
     )
   )
 
-summary_sbytes <- cleaned_dataset %>%
+summary_sbytes <- dur_sbytes_dataset %>%
   group_by(dur_group) %>%
   summarise(avg_sbytes = mean(sbytes), .groups = "drop")
 
@@ -518,7 +521,7 @@ library(scales)
 library(gridExtra)
 
 
-file_path <- "C:/Users/User/OneDrive/Documents/GitHub/Data-Analysis-Assignment/5. UNSW_NB15.csv"
+file_path <- "5. UNSW_NB15.csv"
 data_raw <- read_csv(file_path, show_col_types = FALSE)
 
 cat("Loaded dataset from:", file_path, "\n")
@@ -885,3 +888,4 @@ t_test_result
 
 #==============================================================================================================
 #Complex Hypothesis (Conclusion)
+
