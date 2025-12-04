@@ -508,7 +508,7 @@ library(scales)
 library(gridExtra)
 
 
-file_path <- "C:/Users/User/OneDrive/Documents/GitHub/Data-Analysis-Assignment/5. UNSW_NB15.csv"
+file_path <- "5. UNSW_NB15.csv"
 data_raw <- read_csv(file_path, show_col_types = FALSE)
 
 cat("Loaded dataset from:", file_path, "\n")
@@ -875,3 +875,4 @@ t_test_result
 
 #==============================================================================================================
 #Complex Hypothesis (Conclusion)
+
