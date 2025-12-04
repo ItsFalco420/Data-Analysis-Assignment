@@ -332,7 +332,23 @@ ggplot(unsw, aes(x = dur, y = log10(total_bytes + 1), color = attack_cat)) +
   geom_point(alpha = 0.3, size = 1) +
   labs(title = "Duration vs log10(Total Bytes + 1)", x = "Duration (s)", y = "log10(Total Bytes + 1)") +
   theme_minimal()
-                     
+
+ # -----------------------------
+# Hypothesis Testing: 
+# Is there a relationship between duration and total bytes?
+# -----------------------------
+
+# Step 1: Create total_bytes column
+unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
+
+# Step 2: Calculate correlation coefficient
+cor_value <- cor(unsw$dur, unsw$total_bytes, use = "complete.obs")
+print(paste("Correlation between duration and total bytes:", round(cor_value, 4)))
+
+# Step 3: Perform correlation test (two-sided)
+cor_test <- cor.test(unsw$dur, unsw$total_bytes, method = "pearson")
+
+print(cor_test)                    
 #==============================================================================================================
 # WONG ZHENG HAN (TP074212)
 # Libraries
