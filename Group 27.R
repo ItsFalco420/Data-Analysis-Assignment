@@ -477,6 +477,16 @@ burst_summary <- short_high_burst %>%
 
 burst_summary
 
+# Visualise these "burst" connections on the same scatterplot
+cleaned_dataset <- cleaned_dataset %>%
+  mutate(
+    dur_group = cut(
+      dur,
+      breaks = c(0, 0.01, 0.1, 1, 10, max(dur)),
+      labels = c("Very Short", "Short", "Medium", "Long", "Very Long")
+    )
+  )
+
 # Bar chart: Average sbytes by duration group (log scale)
 ggplot(cleaned_dataset, aes(x = dur_group5, y = sbytes)) +
   stat_summary(fun = mean, geom = "bar") +
