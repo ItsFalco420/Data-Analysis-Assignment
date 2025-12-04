@@ -1008,3 +1008,35 @@ ggplot(combined_data, aes(x = dbytes + 1, fill = traffic_type)) +
   labs(title = "Density of Destination Bytes by Traffic Type", x = "dbytes (log scale)", y = "Density")
 
 #Hypothesis Testing
+
+#Compare Total Bytes
+t_bytes <- t.test(total_bytes ~ traffic_type, data = combined_data)
+wilcox_bytes <- wilcox.test(total_bytes ~ traffic_type, data = combined_data)
+
+#Compare Total Packets
+t_packets <- t.test(total_packets ~ traffic_type, data = combined_data)
+wilcox_packets <- wilcox.test(total_packets ~ traffic_type, data = combined_data)
+
+#Compare Duration
+t_duration <- t.test(dur ~ traffic_type, data = combined_data)
+wilcox_duration <- wilcox.test(dur ~ traffic_type, data = combined_data)
+
+#Correlation Analysis (check for significant correlations)
+correlations <- combined_data %>%
+  select(dur, sbytes, dbytes, total_bytes, total_packets, forward_packet_rate, backward_packet_rate) %>%
+  cor(use = "complete.obs", method = "pearson")
+
+
+#Results
+cat("=== T-tests ===\n")
+cat("\nTotal Bytes:\n"); print(t_bytes)
+cat("\nTotal Packets:\n"); print(t_packets)
+cat("\nDuration:\n"); print(t_duration)
+
+cat("\n=== Wilcoxon Tests ===\n")
+cat("\nTotal Bytes:\n"); print(wilcox_bytes)
+cat("\nTotal Packets:\n"); print(wilcox_packets)
+cat("\nDuration:\n"); print(wilcox_duration)
+
+cat("\n=== Correlation Matrix ===\n")
+print(correlations)
