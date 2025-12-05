@@ -182,13 +182,6 @@ unsw <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE) %>%
 
 glimpse(unsw)
 
-# Keep only the columns needed for Objective 3
-unsw <- unsw %>% select(dur, sbytes, dbytes, attack_cat)
-
-# Quick peek
-glimpse(unsw)
-
-
 # 2.2.1 Checking & Handling Missing Values
 
 print("Missing values per column:")
@@ -212,33 +205,29 @@ cap_iqr <- function(x){
   return(x)
 }
 
-unsw <- unsw %>%
-  mutate(across(all_of(numeric_cols), cap_iqr))
+unsw <- unsw %>% mutate(across(all_of(numeric_cols), cap_iqr))
 
 
 # 2.2.3 Checking for Duplicates
 
 dup_count <- sum(duplicated(unsw))
 print(paste("Duplicate rows found:", dup_count))
+
 unsw <- unsw %>% distinct()
 print(paste("Rows after removing duplicates:", nrow(unsw)))
 
 
 # 2.2.4 Data Type Checking
 
-str(unsw) 
+unsw <- unsw %>%
+  mutate(attack_cat = as.factor(tolower(trimws(as.character(attack_cat)))))
 
-# attack category a factor for plotting
-unsw$attack_cat <- as.character(unsw$attack_cat)
-unsw$attack_cat <- tolower(trimws(unsw$attack_cat))
-unsw$attack_cat <- as.factor(unsw$attack_cat)
-
+str(unsw)
 
 # 2.2.5 Handle Inconsistent Categorical Entries
 
 print("Attack category levels:")
 print(levels(unsw$attack_cat))
-
 
 # 2.2.6 Check for Negative or Zero Values
 
@@ -249,7 +238,7 @@ unsw <- unsw %>%
   mutate(across(all_of(numeric_cols), ~ ifelse(.x < 0, 0, .x)))
 
 
-# 2.2.7 Normalize / Scale Data 
+# 2.2.7 Normalize data
 
 unsw <- unsw %>%
   mutate(
@@ -258,27 +247,23 @@ unsw <- unsw %>%
     dbytes_scaled = (dbytes - min(dbytes, na.rm = TRUE)) / (max(dbytes, na.rm = TRUE) - min(dbytes, na.rm = TRUE))
   )
 
+# total_bytes 
+
+unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
 
 # 2.2.8 Final Visualization
 
 ggplot(unsw, aes(x = "", y = dur)) +
-  geom_boxplot() +
-  labs(title = "Duration (After Cleaning)", y = "dur", x = "") +
+  geom_boxplot() + labs(title = "Duration (After Cleaning)", y = "dur", x = "") +
   theme_minimal()
 
 ggplot(unsw, aes(x = "", y = sbytes)) +
-  geom_boxplot() +
-  labs(title = "Source Bytes (After Cleaning)", y = "sbytes", x = "") +
+  geom_boxplot() + labs(title = "Source Bytes (After Cleaning)", y = "sbytes", x = "") +
   theme_minimal()
 
 ggplot(unsw, aes(x = "", y = dbytes)) +
-  geom_boxplot() +
-  labs(title = "Destination Bytes (After Cleaning)", y = "dbytes", x = "") +
+  geom_boxplot() + labs(title = "Destination Bytes (After Cleaning)", y = "dbytes", x = "") +
   theme_minimal()
-
-# Save cleaned small CSV for objective (optional)
-write_csv(unsw, "UNSW_cleaned_selected_columns.csv")
-message("Saved cleaned selected columns to UNSW_cleaned_selected_columns.csv")
 
 # cleaned dataset
 
@@ -322,8 +307,6 @@ ggplot(byte_summary_long, aes(x = attack_cat, y = avg_value, fill = byte_type)) 
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-# extra feature 
-unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
 
 # 3. Is there a relationship between connection duration and total data transferred?
 
@@ -357,17 +340,31 @@ ggplot(duration_bytes_summary,
 # Is there a relationship between duration and total bytes?
 # -----------------------------
 
-# Step 1: Create total_bytes column
-unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
-
-# Step 2: Calculate correlation coefficient
 cor_value <- cor(unsw$dur, unsw$total_bytes, use = "complete.obs")
 print(paste("Correlation between duration and total bytes:", round(cor_value, 4)))
 
-# Step 3: Perform correlation test (two-sided)
 cor_test <- cor.test(unsw$dur, unsw$total_bytes, method = "pearson")
 
-print(cor_test)                    
+print(cor_test)    
+
+# ===============================================================
+# === EXTRA FEATURE: Correlation Heatmap 
+# This produces a correlation matrix and a heatmap for dur, sbytes, dbytes, total_bytes
+# ===============================================================
+cor_data <- unsw %>% select(dur, sbytes, dbytes, total_bytes)
+cor_matrix <- cor(cor_data, use = "complete.obs")
+
+print("Correlation matrix (dur, sbytes, dbytes, total_bytes):")
+print(round(cor_matrix, 4))
+
+# Simple heatmap (base R)
+heatmap(cor_matrix,
+        main = "Correlation Heatmap of Numeric Features",
+        xlab = "Variables", ylab = "Variables",
+        col = heat.colors(20))
+
+
+
 #==============================================================================================================
 # WONG ZHENG HAN (TP074212)
 # Libraries
