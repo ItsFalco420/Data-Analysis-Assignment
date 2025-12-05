@@ -331,11 +331,23 @@ unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
 
 print(cor(unsw$dur, unsw$total_bytes, use = "complete.obs"))
 
-# simple scatter
-  ggplot(unsw, aes(x = dur, y = total_bytes)) +
-  geom_point(alpha = 0.3, size = 0.8, color = "darkblue") +
-  labs(title = "Duration vs Total Bytes",
-       x = "Duration (s)", y = "Total Bytes") +
+unsw <- unsw %>%
+  mutate(duration_group = cut(dur,
+                              breaks = c(0, 0.25, 0.5, 1, Inf),
+                              labels = c("0–0.25s", "0.25–0.5s", "0.5–1s", "1s+")))
+
+duration bytes_summary <- unsw %>%
+  group_by(duration_group) %>%
+  summarise(avg_total_bytes = mean(total_bytes, na.rm = TRUE))
+
+print(duration_bytes_summary)
+
+ggplot(duration_bytes_summary,
+       aes(x = duration_group, y = avg_total_bytes)) +
+  geom_col(fill = "steelblue") +
+  labs(title = "Average Total Bytes Across Duration Groups",
+       x = "Duration Group",
+       y = "Average Total Bytes") +
   theme_minimal()
 
  # -----------------------------
