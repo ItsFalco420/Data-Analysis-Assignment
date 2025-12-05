@@ -190,68 +190,73 @@ library(corrplot)
 
 # Import dataset 
 unsw <- read_csv("5. UNSW_NB15.csv", show_col_types = FALSE) %>%
-  select(dur, sbytes, dbytes, attack_cat)   
+  select(dur, sbytes, dbytes, attack_cat) # selecting only relevant variables
 
-glimpse(unsw)
+glimpse(unsw)  # shows structure and sample of dataset
 
 # 2.2.1 Checking & Handling Missing Values
 
 print("Missing values per column:")
-print(colSums(is.na(unsw)))
+print(colSums(is.na(unsw)))  # count NA values in each column
 
 unsw <- unsw %>% drop_na()
 print(paste("Rows after removing NA:", nrow(unsw)))
+
 # 2.2.2 Checking & Handling Outliers (Simple IQR method)
 
-numeric_cols <- c("dur", "sbytes", "dbytes")
+numeric_cols <- c("dur", "sbytes", "dbytes") # numeric columns to check
 
 cap_iqr <- function(x){
-  if (!is.numeric(x)) return(x)
+  if (!is.numeric(x)) return(x) # skip non-numeric columns
   Q1 <- quantile(x, 0.25, na.rm = TRUE)
   Q3 <- quantile(x, 0.75, na.rm = TRUE)
   IQRv <- Q3 - Q1
-  lower <- Q1 - 1.5 * IQRv
-  upper <- Q3 + 1.5 * IQRv
-  x[x < lower] <- lower
-  x[x > upper] <- upper
+  lower <- Q1 - 1.5 * IQRv # lower bound
+  upper <- Q3 + 1.5 * IQRv # upper bound
+  x[x < lower] <- lower    # cap values below bound
+  x[x > upper] <- upper    # cap values above bound
   return(x)
 }
 
+# Apply IQR capping to all numeric columns
 unsw <- unsw %>% mutate(across(all_of(numeric_cols), cap_iqr))
 
 
 # 2.2.3 Checking for Duplicates
 
-dup_count <- sum(duplicated(unsw))
+dup_count <- sum(duplicated(unsw))  # count duplicated rows
 print(paste("Duplicate rows found:", dup_count))
 
-unsw <- unsw %>% distinct()
+unsw <- unsw %>% distinct()   # remove duplicates
 print(paste("Rows after removing duplicates:", nrow(unsw)))
 
 
 # 2.2.4 Data Type Checking
 
+# Converts attack_cat to a clean factor (lowercase, trimmed text)
 unsw <- unsw %>%
   mutate(attack_cat = as.factor(tolower(trimws(as.character(attack_cat)))))
 
-str(unsw)
+str(unsw) # check structure after type correction
 
 # 2.2.5 Handle Inconsistent Categorical Entries
 
 print("Attack category levels:")
-print(levels(unsw$attack_cat))
+print(levels(unsw$attack_cat))   # view cleaned category labels
 
 # 2.2.6 Check for Negative or Zero Values
 
 print("Summary of numeric columns (after cleaning):")
-print(summary(unsw[, numeric_cols]))
+print(summary(unsw[, numeric_cols]))   # view distribution after cleaning
 
+# Replace any negative values with zero
 unsw <- unsw %>%
   mutate(across(all_of(numeric_cols), ~ ifelse(.x < 0, 0, .x)))
 
 
 # 2.2.7 Normalize data
 
+# Min-max scaling for numeric columns
 unsw <- unsw %>%
   mutate(
     dur_scaled = (dur - min(dur, na.rm = TRUE)) / (max(dur, na.rm = TRUE) - min(dur, na.rm = TRUE)),
@@ -259,15 +264,18 @@ unsw <- unsw %>%
     dbytes_scaled = (dbytes - min(dbytes, na.rm = TRUE)) / (max(dbytes, na.rm = TRUE) - min(dbytes, na.rm = TRUE))
   )
 
-# total_bytes 
+# total_bytes column
 
 unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
 
-# =====================================================================
+#==============================================================================================================
 # EXTRA FEATURE: CORRELATION HEATMAP USING CORRPLOT
-# =====================================================================
+#==============================================================================================================
 
+# Select numeric columns for correlation analysis
 cor_data <- unsw %>% select(dur, sbytes, dbytes, total_bytes)
+
+# Create correlation matrix
 cor_matrix <- cor(cor_data, use = "complete.obs")
 
 corrplot(cor_matrix,
@@ -298,9 +306,10 @@ write_csv(unsw, "UNSW_cleaned_selected_columns.csv")
 message("Saved cleaned selected columns to UNSW_cleaned_selected_columns.csv")
                      
 #==============================================================================================================
-# 1. What is the average connection duration for each attack category?
+# OBJECTIVE 1 -  What is the average connection duration for each attack category?
+#==============================================================================================================
 avg_duration <- unsw %>%
-  group_by(attack_cat) %>%
+  group_by(attack_cat) %>%  # group attacks
   summarise(mean_duration = mean(dur, na.rm = TRUE),
             median_duration = median(dur, na.rm = TRUE),
             n = n()) %>%
@@ -308,6 +317,7 @@ avg_duration <- unsw %>%
 
 print(avg_duration)
 
+# plotting mean duration by attac category
 ggplot(avg_duration, aes(x = attack_cat, y = mean_duration)) +
   geom_col(fill = "skyblue") +
   labs(title = "Average Duration by Attack Category",
@@ -315,7 +325,10 @@ ggplot(avg_duration, aes(x = attack_cat, y = mean_duration)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-# 2. How do source and destination byte counts differ among attack types?
+#==============================================================================================================
+# Objective 2 - How do source and destination byte counts differ among attack types?
+#==============================================================================================================
+
 byte_summary <- unsw %>%
   group_by(attack_cat) %>%
   summarise(avg_sbytes = mean(sbytes, na.rm = TRUE),
@@ -323,10 +336,12 @@ byte_summary <- unsw %>%
 
 print(byte_summary)
 
+# converting to long format for grouped bar chart
 byte_summary_long <- byte_summary %>%
   pivot_longer(cols = c(avg_sbytes, avg_dbytes),
                names_to = "byte_type", values_to = "avg_value")
 
+# grouped bar chart
 ggplot(byte_summary_long, aes(x = attack_cat, y = avg_value, fill = byte_type)) +
   geom_col(position = "dodge") +
   labs(title = "Average Source vs Destination Bytes",
@@ -334,11 +349,13 @@ ggplot(byte_summary_long, aes(x = attack_cat, y = avg_value, fill = byte_type)) 
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-
-# 3. Is there a relationship between connection duration and total data transferred?
+#==============================================================================================================
+# OBJECTIVE 3 - Is there a relationship between connection duration and total data transferred?
+#==============================================================================================================
 
 unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
 
+# categorize duration into groups
 unsw <- unsw %>% mutate(
   duration_group = case_when(
     dur <= 0.3 ~ "Short",
@@ -347,12 +364,14 @@ unsw <- unsw %>% mutate(
   )
 )
 
+# calc avg total bytes for each duration group
 duration_bytes_summary <- unsw %>%
   group_by(duration_group) %>%
   summarise(avg_total_bytes = mean(total_bytes, na.rm = TRUE))
 
 print(duration_bytes_summary)
 
+# bar chart for duration groups vs total bytes
 ggplot(duration_bytes_summary,
        aes(x = duration_group,
            y = avg_total_bytes)) +
@@ -362,15 +381,15 @@ ggplot(duration_bytes_summary,
        y = "Average Total Bytes") +
   theme_minimal()
 
-# -----------------------------
-# Hypothesis Testing: 
+#==============================================================================================================
+# HYPOTHESIS TESTING: 
 # Is there a relationship between duration and total bytes?
-# -----------------------------
+#==============================================================================================================
 
-cor_value <- cor(unsw$dur, unsw$total_bytes, use = "complete.obs")
+cor_value <- cor(unsw$dur, unsw$total_bytes, use = "complete.obs")  # correlation coefficient   
 print(paste("Correlation between duration and total bytes:", round(cor_value, 4)))
 
-cor_test <- cor.test(unsw$dur, unsw$total_bytes, method = "pearson")
+cor_test <- cor.test(unsw$dur, unsw$total_bytes, method = "pearson")  # statistical test
 
 print(cor_test)    
 
