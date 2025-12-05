@@ -296,9 +296,10 @@ avg_duration <- unsw %>%
 
 print(avg_duration)
 
-ggplot(avg_duration, aes(x = reorder(attack_cat, -mean_duration), y = mean_duration, fill = attack_cat)) +
-  geom_col(show.legend = FALSE) +
-  labs(title = "Average Connection Duration by Attack Category", x = "Attack Category", y = "Mean Duration (s)") +
+ggplot(avg_duration, aes(x = attack_cat, y = mean_duration)) +
+  geom_col(fill = "skyblue") +
+  labs(title = "Average Duration by Attack Category",
+       x = "Attack Category", y = "Mean Duration (s)") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
@@ -310,11 +311,14 @@ byte_summary <- unsw %>%
 
 print(byte_summary)
 
-byte_summary %>%
-  pivot_longer(cols = c(avg_sbytes, avg_dbytes), names_to = "type", values_to = "value") %>%
-  ggplot(aes(x = reorder(attack_cat, -value), y = value, fill = type)) +
+byte_summary_long <- byte_summary %>%
+  pivot_longer(cols = c(avg_sbytes, avg_dbytes),
+               names_to = "byte_type", values_to = "avg_value")
+
+ggplot(byte_summary_long, aes(x = attack_cat, y = avg_value, fill = byte_type)) +
   geom_col(position = "dodge") +
-  labs(title = "Source vs Destination Bytes by Attack Category", x = "Attack Category", y = "Average Bytes") +
+  labs(title = "Average Source vs Destination Bytes",
+       x = "Attack Category", y = "Average Bytes", fill = "Type") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
@@ -328,9 +332,10 @@ unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
 print(cor(unsw$dur, unsw$total_bytes, use = "complete.obs"))
 
 # simple scatter
-ggplot(unsw, aes(x = dur, y = log10(total_bytes + 1), color = attack_cat)) +
-  geom_point(alpha = 0.3, size = 1) +
-  labs(title = "Duration vs log10(Total Bytes + 1)", x = "Duration (s)", y = "log10(Total Bytes + 1)") +
+  ggplot(unsw, aes(x = dur, y = total_bytes)) +
+  geom_point(alpha = 0.3, size = 0.8, color = "darkblue") +
+  labs(title = "Duration vs Total Bytes",
+       x = "Duration (s)", y = "Total Bytes") +
   theme_minimal()
 
  # -----------------------------
