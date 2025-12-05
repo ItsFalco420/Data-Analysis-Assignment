@@ -346,7 +346,7 @@ ggplot(duration_bytes_summary,
        y = "Average Total Bytes") +
   theme_minimal()
 
- # -----------------------------
+# -----------------------------
 # Hypothesis Testing: 
 # Is there a relationship between duration and total bytes?
 # -----------------------------
@@ -359,7 +359,7 @@ cor_test <- cor.test(unsw$dur, unsw$total_bytes, method = "pearson")
 print(cor_test)    
 
 # ===============================================================
-# === EXTRA FEATURE: Correlation Heatmap 
+# EXTRA FEATURE: Correlation Heatmap 
 # This produces a correlation matrix and a heatmap for dur, sbytes, dbytes, total_bytes
 # ===============================================================
 cor_data <- unsw %>% select(dur, sbytes, dbytes, total_bytes)
