@@ -34,8 +34,19 @@ cleaned_bytes_dataset <- cleaned_bytes_dataset %>%
   )
 
 #3.2.3: Duplicates Checking
-cleaned_bytes_dataset <- cleaned_bytes_dataset %>%
-  distinct()
+initial_n <- nrow(cleaned_bytes_dataset)
+initial_n_dupes <- sum(duplicated(cleaned_bytes_dataset))
+
+cat("Initial rows:", initial_n, "\n")
+cat("Duplicate rows:", initial_n_dupes, "\n")
+
+cleaned_bytes_dataset <- cleaned_bytes_dataset %>% distinct()
+
+after_n <- nrow(cleaned_bytes_dataset)
+removed_dupes <- initial_n - after_n
+
+cat("Rows after removing duplicates:", after_n, "\n")
+cat("Duplicates removed:", removed_dupes, "\n")
 
 #3.2.4: Data Type Checking
 str(cleaned_bytes_dataset)
@@ -968,7 +979,7 @@ library(tidyr)
 library(scales)
 
 #Data Preparation
-#Selecting columns for analysis from  datasets
+#Selecting columns for analysis from  multiple dataset
 combined_data <- bind_rows (
   cleaned_bytes_dataset %>% select(attack_cat, sbytes, dbytes),
   cleaned_dataset %>% select(attack_cat, dur, sbytes),
@@ -994,18 +1005,6 @@ combined_data <- combined_data %>%
     backward_packet_rate = ifelse(dur > 0, dpkts / dur, 0)
   )
 
-#Density Plot
-ggplot(combined_data, aes(x = sbytes + 1, fill = traffic_type)) +
-  geom_density(alpha = 0.5) +
-  scale_x_log10() +
-  theme_minimal() +
-  labs(title = "Density of Source Bytes by Traffic Type", x = "sbytes (log scale)", y = "Density")
-
-ggplot(combined_data, aes(x = dbytes + 1, fill = traffic_type)) +
-  geom_density(alpha = 0.5) +
-  scale_x_log10() +
-  theme_minimal() +
-  labs(title = "Density of Destination Bytes by Traffic Type", x = "dbytes (log scale)", y = "Density")
 
 #Hypothesis Testing
 
