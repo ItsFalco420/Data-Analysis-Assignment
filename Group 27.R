@@ -329,29 +329,28 @@ unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
 
 unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
 
-cor_value <- cor(unsw$dur, unsw$total_bytes, use = "complete.obs")
-print(paste("Correlation:", round(cor_value, 4)))
+unsw <- unsw %>% mutate(
+  duration_group = case_when(
+    dur <= 0.3 ~ "Short",
+    dur <= 0.8 ~ "Medium",
+    TRUE ~ "Long"
+  )
+)
 
-unsw <- unsw %>%
-  mutate(duration_group = case_when(
-    dur < 0.5 ~ "Short",
-    dur < 1   ~ "Medium",
-    TRUE      ~ "Long"
-  ))
-
-duration_summary <- unsw %>%
+duration_bytes_summary <- unsw %>%
   group_by(duration_group) %>%
-  summarise(avg_total_bytes = mean(total_bytes))
+  summarise(avg_total_bytes = mean(total_bytes, na.rm = TRUE))
 
-print(duration_summary)
+print(duration_bytes_summary)
 
-ggplot(duration_summary, aes(x = duration_group, y = avg_total_bytes)) +
+ggplot(duration_bytes_summary,
+       aes(x = duration_group,
+           y = avg_total_bytes)) +
   geom_col(fill = "skyblue") +
   labs(title = "Average Total Bytes by Duration Group",
        x = "Duration Group",
        y = "Average Total Bytes") +
   theme_minimal()
-
 
  # -----------------------------
 # Hypothesis Testing: 
