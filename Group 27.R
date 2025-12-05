@@ -368,7 +368,6 @@ cor_matrix <- cor(cor_data, use = "complete.obs")
 print("Correlation matrix (dur, sbytes, dbytes, total_bytes):")
 print(round(cor_matrix, 4))
 
-# Simple heatmap (base R)
 heatmap(cor_matrix,
         main = "Correlation Heatmap of Numeric Features",
         xlab = "Variables", ylab = "Variables",
