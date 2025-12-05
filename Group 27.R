@@ -262,6 +262,21 @@ unsw <- unsw %>%
 
 unsw <- unsw %>% mutate(total_bytes = sbytes + dbytes)
 
+# =====================================================================
+# EXTRA FEATURE: CORRELATION HEATMAP USING CORRPLOT
+# =====================================================================
+
+cor_data <- unsw %>% select(dur, sbytes, dbytes, total_bytes)
+cor_matrix <- cor(cor_data, use = "complete.obs")
+
+corrplot(cor_matrix,
+         method = "color",
+         addCoef.col = "black",
+         tl.col = "black",
+         tl.srt = 45,
+         number.cex = 0.8,
+         main = "Correlation Heatmap of Numeric Features")
+
 # 2.2.8 Final Visualization
 
 ggplot(unsw, aes(x = "", y = dur)) +
@@ -358,20 +373,6 @@ cor_test <- cor.test(unsw$dur, unsw$total_bytes, method = "pearson")
 
 print(cor_test)    
 
-# ===============================================================
-# EXTRA FEATURE: Correlation Heatmap 
-# This produces a correlation matrix and a heatmap for dur, sbytes, dbytes, total_bytes
-# ===============================================================
-cor_data <- unsw %>% select(dur, sbytes, dbytes, total_bytes)
-cor_matrix <- cor(cor_data, use = "complete.obs")
-
-print("Correlation matrix (dur, sbytes, dbytes, total_bytes):")
-print(round(cor_matrix, 4))
-
-heatmap(cor_matrix,
-        main = "Correlation Heatmap of Numeric Features",
-        xlab = "Variables", ylab = "Variables",
-        col = heat.colors(20))
 
 
 
