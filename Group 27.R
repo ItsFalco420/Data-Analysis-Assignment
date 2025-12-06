@@ -1058,7 +1058,7 @@ library(scales)
 combined_data <- bind_rows (
   cleaned_bytes_dataset %>% select(attack_cat, sbytes, dbytes),
   cleaned_dataset %>% select(attack_cat, dur, sbytes),
-  data %>% select(attack_cat, dur, sbytes, dbytes, spkts, dpkts),
+  df %>% select(attack_cat, dur, sbytes, dbytes, spkts, dpkts),
   data_alt %>% select(attack_cat, dur, sbytes, dbytes, spkts, dpkts)
 ) %>%
   distinct() %>%
